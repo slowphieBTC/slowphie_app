@@ -425,6 +425,7 @@ export const OPKILL_TOKEN: TokenConfig = {
   mintPerCall: 25_000_000_000_000_000_000_000n,
   decimals: 18,
   maxSupply: 1_000_000_000_000_000_000_000_000_000n,
+  deployedAt: 0,
   colorClasses: {
     gradient: 'from-red-400 to-orange-500',
     glow: 'glow-red',
@@ -461,6 +462,7 @@ export const LUKE_TOKEN: TokenConfig = {
   mintPerCall: 1_000_000_000_000_000_000_000_000n,
   decimals: 18,
   maxSupply: 21_000_000_000_000_000_000_000_000n,
+  deployedAt: 0,
   colorClasses: {
     gradient: 'from-cyan-400 to-sky-500',
     glow: 'glow-cyan',
