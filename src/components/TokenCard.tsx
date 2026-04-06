@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useWalletConnect } from '@btc-vision/walletconnect';
 import { TokenConfig } from '../config/tokens';
-import { useTokenInfo } from '../hooks/useTokenInfo';
+import { useTokenInfo, TokenInfo } from '../hooks/useTokenInfo';
 import { useMintToken } from '../hooks/useMintToken';
 
 interface Props {
   token: TokenConfig;
+  onInfoLoaded?: (tokenId: string, info: TokenInfo) => void;
 }
 
 function formatAmount(raw: bigint, decimals: number): string {
@@ -15,7 +16,7 @@ function formatAmount(raw: bigint, decimals: number): string {
   return `${whole.toLocaleString()}.${frac.toString().padStart(decimals, '0').slice(0, 2)}`;
 }
 
-export function TokenCard({ token }: Props) {
+export function TokenCard({ token, onInfoLoaded }: Props) {
   const { walletAddress } = useWalletConnect();
   const { info, loading, fetch } = useTokenInfo(token);
   const { mint, status, error, result, reset } = useMintToken(token);
@@ -24,6 +25,10 @@ export function TokenCard({ token }: Props) {
   useEffect(() => {
     fetch();
   }, [fetch]);
+
+  useEffect(() => {
+    if (info && onInfoLoaded) onInfoLoaded(token.id, info);
+  }, [info, onInfoLoaded, token.id]);
 
   useEffect(() => {
     if (status === 'success') {

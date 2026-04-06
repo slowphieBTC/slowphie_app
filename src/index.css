@@ -161,6 +161,30 @@
   .glow-purple {
     box-shadow: 0 0 25px rgba(167, 139, 250, 0.35), 0 0 60px rgba(167, 139, 250, 0.15);
   }
+  .glow-yellow {
+    box-shadow: 0 0 25px rgba(234, 179, 8, 0.35), 0 0 60px rgba(234, 179, 8, 0.15);
+  }
+  .glow-teal {
+    box-shadow: 0 0 25px rgba(20, 184, 166, 0.35), 0 0 60px rgba(20, 184, 166, 0.15);
+  }
+  .glow-rose {
+    box-shadow: 0 0 25px rgba(251, 113, 133, 0.35), 0 0 60px rgba(251, 113, 133, 0.15);
+  }
+  .glow-indigo {
+    box-shadow: 0 0 25px rgba(99, 102, 241, 0.35), 0 0 60px rgba(99, 102, 241, 0.15);
+  }
+  .glow-lime {
+    box-shadow: 0 0 25px rgba(132, 204, 22, 0.35), 0 0 60px rgba(132, 204, 22, 0.15);
+  }
+  .glow-fuchsia {
+    box-shadow: 0 0 25px rgba(217, 70, 239, 0.35), 0 0 60px rgba(217, 70, 239, 0.15);
+  }
+  .glow-red {
+    box-shadow: 0 0 25px rgba(239, 68, 68, 0.35), 0 0 60px rgba(239, 68, 68, 0.15);
+  }
+  .glow-cyan {
+    box-shadow: 0 0 25px rgba(6, 182, 212, 0.35), 0 0 60px rgba(6, 182, 212, 0.15);
+  }
 }
 
 @layer utilities {

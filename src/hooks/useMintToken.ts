@@ -1,3 +1,4 @@
+import { Address } from '@btc-vision/transaction';
 import { useState, useCallback, useRef } from 'react';
 import { useWalletConnect } from '@btc-vision/walletconnect';
 import { getContract } from 'opnet';
@@ -6,7 +7,7 @@ import { TokenConfig } from '../config/tokens';
 
 export type MintStatus = 'idle' | 'simulating' | 'signing' | 'success' | 'error';
 
-type DynamicContract = BaseContractProperties & Record<string, (...args: bigint[]) => Promise<any>>;
+type DynamicContract = BaseContractProperties & Record<string, (...args: (bigint | Address)[]) => Promise<any>>;
 
 export interface MintResult {
   txId: string;
@@ -54,8 +55,12 @@ export function useMintToken(token: TokenConfig) {
       const fn = contract[token.mintFunctionName];
       if (typeof fn !== 'function') throw new Error(`Function ${token.mintFunctionName} not found on contract.`);
 
+      const resolvedArgs = token.mintArgsFactory
+        ? token.mintArgsFactory(address)
+        : token.mintArgs;
+
       setStatus('simulating');
-      const sim = await fn.call(contract, ...token.mintArgs);
+      const sim = await fn.call(contract, ...resolvedArgs);
       if (sim.revert) throw new Error(`Simulation reverted: ${sim.revert}`);
 
       setStatus('signing');
