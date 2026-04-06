@@ -1,0 +1,12 @@
+{
+  "rewrites": [
+    {
+      "source": "/opnet-rpc",
+      "destination": "https://mainnet.opnet.org/api/v1/json-rpc"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}

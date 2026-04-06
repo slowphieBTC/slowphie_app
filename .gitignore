@@ -1,0 +1,10 @@
+node_modules/
+dist/
+.env
+.env.local
+.DS_Store
+*.log
+.a0proj/memory/
+.a0proj/agents.json
+.a0proj/secrets.env
+.a0proj/variables.env

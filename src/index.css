@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    background: #060a14;
+    color: #e2e8f0;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #111827; }
+  ::-webkit-scrollbar-thumb { background: #374151; border-radius: 9999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #f97316; }
+}
+
+@layer components {
+  /* ── Home page glass cards ── */
+  .glass-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    transition: background 0.35s ease, border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+    z-index: 1;
+    will-change: transform;
+  }
+
+  .glass-card:hover {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(247, 147, 26, 0.35);
+    box-shadow:
+      0 0 40px rgba(247, 147, 26, 0.08),
+      0 20px 60px rgba(0, 0, 0, 0.5),
+      inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    transform: translateY(-6px) scale(1.01);
+    z-index: 10;
+  }
+
+  .glass-card > * {
+    position: relative;
+    z-index: 2;
+  }
+
+  /* ── Overview / module glass ── */
+  .glass {
+    background: rgba(17, 24, 39, 0.6);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(55, 65, 81, 0.5);
+  }
+
+  /* ── AppBar ── */
+  .appbar-glass {
+    background: rgba(6, 10, 20, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  /* ── Background grid ── */
+  .bg-grid {
+    background-image:
+      linear-gradient(rgba(247, 147, 26, 0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(247, 147, 26, 0.03) 1px, transparent 1px);
+    background-size: 60px 60px;
+  }
+
+  /* ── Text gradient ── */
+  .text-gradient {
+    background: linear-gradient(135deg, #f7931a 0%, #ff6b35 50%, #b75be3 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* ── Buttons ── */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    background: #f97316;
+    color: #fff;
+    font-weight: 600;
+    padding: 0.625rem 1.25rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 15px rgba(249, 115, 22, 0.25);
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary:hover {
+    background: #ea580c;
+    box-shadow: 0 4px 20px rgba(249, 115, 22, 0.4);
+  }
+  .btn-primary:active {
+    transform: scale(0.95);
+  }
+
+  .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(31, 41, 55, 0.5);
+    color: #d1d5db;
+    font-weight: 500;
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(55, 65, 81, 0.5);
+    cursor: pointer;
+  }
+  .btn-ghost:hover {
+    background: rgba(55, 65, 81, 0.5);
+    color: #fff;
+    border-color: #4b5563;
+  }
+  .btn-ghost:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+
+  /* ── Badges ── */
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold;
+  }
+
+  .stat-label {
+    @apply text-xs text-gray-500 uppercase tracking-wider font-medium;
+  }
+
+  .stat-value {
+    @apply text-lg font-bold text-white;
+  }
+
+  .glow-orange {
+    box-shadow: 0 0 25px rgba(247, 147, 26, 0.35), 0 0 60px rgba(247, 147, 26, 0.15);
+  }
+  .glow-green {
+    box-shadow: 0 0 25px rgba(74, 222, 128, 0.35), 0 0 60px rgba(74, 222, 128, 0.15);
+  }
+  .glow-blue {
+    box-shadow: 0 0 25px rgba(96, 165, 250, 0.35), 0 0 60px rgba(96, 165, 250, 0.15);
+  }
+  .glow-purple {
+    box-shadow: 0 0 25px rgba(167, 139, 250, 0.35), 0 0 60px rgba(167, 139, 250, 0.15);
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
