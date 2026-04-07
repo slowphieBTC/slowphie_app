@@ -399,18 +399,26 @@ function FarmCard({ pos }: { pos: Position }) {
           {isWalletOnly ? 'TOKEN' : 'FARM'}
         </span>
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      {isWalletOnly ? (
         <div className="bg-dark-700/50 rounded-xl p-3">
-          <div className="text-xs text-gray-500">{isWalletOnly ? 'Wallet Balance' : 'Already Staked'}</div>
-          <div className="mt-1 text-white font-semibold">{fmt(pos.amount)}</div>
+          <div className="text-xs text-gray-500">Wallet Balance</div>
+          <div className="mt-1 text-white font-semibold text-lg">{fmt(pos.amount)}</div>
           <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
         </div>
-        <div className="bg-dark-700/50 rounded-xl p-3">
-          <div className="text-xs text-gray-500">Pending Harvest</div>
-          <div className="mt-1 text-green-400 font-semibold">{fmt(pos.rewards)}</div>
-          <div className="text-xs text-gray-600 mt-0.5">{pos.rewardToken ?? '\u2014'}</div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-dark-700/50 rounded-xl p-3">
+            <div className="text-xs text-gray-500">Already Staked</div>
+            <div className="mt-1 text-white font-semibold">{fmt(pos.amount)}</div>
+            <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
+          </div>
+          <div className="bg-dark-700/50 rounded-xl p-3">
+            <div className="text-xs text-gray-500">Pending Harvest</div>
+            <div className="mt-1 text-green-400 font-semibold">{fmt(pos.rewards)}</div>
+            <div className="text-xs text-gray-600 mt-0.5">{pos.rewardToken ?? '\u2014'}</div>
+          </div>
         </div>
-      </div>
+      )}
       <AddressRow addr={pos.contractAddress} />
     </div>
   );
