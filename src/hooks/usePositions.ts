@@ -74,6 +74,7 @@ export function usePositions(addresses: string[]) {
   const allPositions         = useAppStore((s) => s.allPositions);
   const positionsLastFetched = useAppStore((s) => s.positionsLastFetched);
   const setAllPositions      = useAppStore((s) => s.setAllPositions);
+  const mergeTokenIcons      = useAppStore((s) => s.mergeTokenIcons);
 
   const [loading,    setLoading]    = useState(() => allPositions.length === 0 && addresses.length > 0);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,6 +125,15 @@ export function usePositions(addresses: string[]) {
             token1Symbol: p.token1Symbol,
           });
         }
+
+        // Extract icon URLs from server and merge into store
+        const icons: Record<string, string> = {};
+        for (const t of [...resp.tokens, ...resp.pools]) {
+          if (t.icon && t.icon.startsWith('http')) {
+            icons[t.symbol.toUpperCase()] = t.icon;
+          }
+        }
+        if (Object.keys(icons).length > 0) mergeTokenIcons(icons);
 
         tokenListRef.current = list;
       } catch {

@@ -1,10 +1,11 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, Droplets, Wheat, ExternalLink, Copy, CheckCheck, Wallet, Tractor } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
+import { useAppStore } from '../store';
 import type { Position, FarmInfo, LPUnderlying } from '../types';
 
-// Token logo URLs
-const TOKEN_ICONS: Record<string, string> = {
+// Static fallback token logo URLs (used when store has no entry)
+const STATIC_TOKEN_ICONS: Record<string, string> = {
   PILL: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
   MOTO: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
   BTC:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
@@ -16,56 +17,78 @@ function symbolAbbr(symbol: string): string {
   return clean.slice(0, 2).toUpperCase();
 }
 
+/** Merge store + static icons, return URL or undefined */
+function resolveIcon(symbol: string, storeIcons: Record<string, string>): string | undefined {
+  const key = symbol.toUpperCase();
+  return storeIcons[key] ?? STATIC_TOKEN_ICONS[key];
+}
+
+/** Letter-fallback avatar for when image is unavailable */
+function LetterAvatar({ abbr, sizeClass }: { abbr: string; sizeClass: string }) {
+  return (
+    <div className={`${sizeClass} rounded-lg bg-dark-700/80 border border-dark-600/50 flex items-center justify-center shrink-0`}>
+      <span className="text-xs font-bold text-gray-300">{abbr}</span>
+    </div>
+  );
+}
+
 /**
  * Token avatar — shows logo if available, otherwise first 1-2 chars.
+ * Uses onError to fall back to letter avatar if image 404s.
  * For LP tokens (symbol contains '/'), shows a split icon with both halves.
  */
 function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
+  const storeIcons = useAppStore((s) => s.tokenIcons);
   const px = size * 4; // Tailwind unit → px (w-8 = 32px)
   const sizeClass = `w-${size} h-${size}`;
+  const [leftErr,  setLeftErr]  = useState(false);
+  const [rightErr, setRightErr] = useState(false);
+  const [imgErr,   setImgErr]   = useState(false);
 
   // ── LP split icon ──────────────────────────────────────────────────────
   if (symbol.includes('/')) {
     const [left, right] = symbol.split('/');
-    const leftUrl  = TOKEN_ICONS[(left  ?? '').toUpperCase()];
-    const rightUrl = TOKEN_ICONS[(right ?? '').toUpperCase()];
+    const leftUrl  = resolveIcon(left  ?? '', storeIcons);
+    const rightUrl = resolveIcon(right ?? '', storeIcons);
     const leftAbbr  = symbolAbbr(left  ?? '');
     const rightAbbr = symbolAbbr(right ?? '');
 
-    if (leftUrl && rightUrl) {
-      return <SplitTokenIcon leftUrl={leftUrl} leftAlt={left ?? ''} rightUrl={rightUrl} rightAlt={right ?? ''} size={px} />;
+    if (leftUrl && rightUrl && !leftErr && !rightErr) {
+      return <SplitTokenIcon
+        leftUrl={leftUrl} leftAlt={left ?? ''}
+        rightUrl={rightUrl} rightAlt={right ?? ''}
+        size={px}
+        onLeftError={() => setLeftErr(true)}
+        onRightError={() => setRightErr(true)}
+      />;
     }
 
-    // Fallback: split-letter design
+    // Fallback: split-letter design (used if no URL or image error)
     return (
       <div style={{ position: 'relative', width: px, height: px, flexShrink: 0 }}>
         {/* Left half */}
         <div style={{
-          position: 'absolute', top: 0, left: 0,
-          width: px, height: px,
-          borderRadius: 8,
-          background: 'rgba(99,102,241,0.25)',
+          position: 'absolute', top: 0, left: 0, width: px, height: px,
+          borderRadius: 8, background: 'rgba(99,102,241,0.25)',
           border: '1px solid rgba(99,102,241,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           clipPath: 'inset(0 50% 0 0)',
         }}>
-          {leftUrl
-            ? <img src={leftUrl} alt={left ?? ''} style={{ width: px, height: px, objectFit: 'cover', borderRadius: 8 }} />
+          {leftUrl && !leftErr
+            ? <img src={leftUrl} alt={left ?? ''} style={{ width: px, height: px, objectFit: 'cover', borderRadius: 8 }} onError={() => setLeftErr(true)} />
             : <span style={{ fontSize: 9, fontWeight: 700, color: '#a5b4fc', paddingRight: 4 }}>{leftAbbr}</span>
           }
         </div>
         {/* Right half */}
         <div style={{
-          position: 'absolute', top: 0, left: 0,
-          width: px, height: px,
-          borderRadius: 8,
-          background: 'rgba(99,102,241,0.15)',
+          position: 'absolute', top: 0, left: 0, width: px, height: px,
+          borderRadius: 8, background: 'rgba(99,102,241,0.15)',
           border: '1px solid rgba(99,102,241,0.3)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           clipPath: 'inset(0 0 0 50%)',
         }}>
-          {rightUrl
-            ? <img src={rightUrl} alt={right ?? ''} style={{ width: px, height: px, objectFit: 'cover', borderRadius: 8 }} />
+          {rightUrl && !rightErr
+            ? <img src={rightUrl} alt={right ?? ''} style={{ width: px, height: px, objectFit: 'cover', borderRadius: 8 }} onError={() => setRightErr(true)} />
             : <span style={{ fontSize: 9, fontWeight: 700, color: '#a5b4fc', paddingLeft: 4 }}>{rightAbbr}</span>
           }
         </div>
@@ -81,17 +104,20 @@ function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
   }
 
   // ── Regular token ──────────────────────────────────────────────────────
-  const url  = TOKEN_ICONS[symbol.toUpperCase()];
+  const url  = resolveIcon(symbol, storeIcons);
   const abbr = symbolAbbr(symbol);
-  if (url) {
-    return <img src={url} alt={symbol} className={`${sizeClass} rounded-lg object-contain`} />;
+  if (url && !imgErr) {
+    return <img
+      src={url}
+      alt={symbol}
+      className={`${sizeClass} rounded-lg object-contain`}
+      onError={() => setImgErr(true)}
+    />;
   }
-  return (
-    <div className={`${sizeClass} rounded-lg bg-dark-700/80 border border-dark-600/50 flex items-center justify-center shrink-0`}>
-      <span className="text-xs font-bold text-gray-300">{abbr}</span>
-    </div>
-  );
+  return <LetterAvatar abbr={abbr} sizeClass={sizeClass} />;
 }
+
+
 
 
 
@@ -117,13 +143,17 @@ function fmt(n: number): string {
 
 // ── Split LP Token Icon: two tokens, each showing half ────────────────
 function SplitTokenIcon({ 
-  leftUrl, leftAlt, rightUrl, rightAlt, size = 36 
-}: { leftUrl: string; leftAlt: string; rightUrl: string; rightAlt: string; size?: number }) {
+  leftUrl, leftAlt, rightUrl, rightAlt, size = 36, onLeftError, onRightError
+}: { 
+  leftUrl: string; leftAlt: string; rightUrl: string; rightAlt: string; size?: number;
+  onLeftError?: () => void; onRightError?: () => void;
+}) {
   return (
     <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
       <img
         src={leftUrl}
         alt={leftAlt}
+        onError={onLeftError}
         style={{
           position: 'absolute', top: 0, left: 0,
           width: size, height: size,
@@ -135,6 +165,7 @@ function SplitTokenIcon({
       <img
         src={rightUrl}
         alt={rightAlt}
+        onError={onRightError}
         style={{
           position: 'absolute', top: 0, left: 0,
           width: size, height: size,
@@ -274,8 +305,8 @@ function StakeCard({ pos }: { pos: Position }) {
             {rewards.map((r) => (
               <div key={r.tokenAddress} className="bg-dark-700/50 rounded-xl p-3">
                 <div className="flex items-center gap-1.5">
-                  {TOKEN_ICONS[r.symbol] ? (
-                    <img src={TOKEN_ICONS[r.symbol]} alt={r.symbol} className="w-4 h-4 rounded" />
+                  {(STATIC_TOKEN_ICONS[r.symbol]) ? (
+                    <img src={STATIC_TOKEN_ICONS[r.symbol]} alt={r.symbol} className="w-4 h-4 rounded" />
                   ) : null}
                   <span className="text-xs text-gray-400">{r.symbol}</span>
                 </div>

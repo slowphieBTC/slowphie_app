@@ -64,6 +64,10 @@ interface AppState {
   // Latest block
   latestBlock: { height: number; timestamp: number } | null;
   setLatestBlock: (b: { height: number; timestamp: number }) => void;
+
+  // Dynamic token icon map: symbol (uppercase) -> image url
+  tokenIcons: Record<string, string>;
+  mergeTokenIcons: (icons: Record<string, string>) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -119,6 +123,15 @@ export const useAppStore = create<AppState>()(
 
       latestBlock: null,
       setLatestBlock: (b) => set({ latestBlock: b }),
+
+      tokenIcons: {
+        // Static seeds — always available regardless of server
+        BTC:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
+        MOTO: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
+        PILL: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
+      },
+      mergeTokenIcons: (icons) =>
+        set((s) => ({ tokenIcons: { ...s.tokenIcons, ...icons } })),
     }),
     {
       name: 'motostrategy-storage',
