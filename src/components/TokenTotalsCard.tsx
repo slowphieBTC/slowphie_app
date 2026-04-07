@@ -1,16 +1,46 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import type { Position } from '../types';
+import { useAppStore } from '../store';
+
+// ── Static fallback icon URLs ─────────────────────────────────────────
+const STATIC_TOKEN_ICONS: Record<string, string> = {
+  BTC:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
+  MOTO: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
+  PILL: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
+};
 
 // ── Token display config ──────────────────────────────────────────────
 const TOKEN_ORDER = ['BTC', 'MOTO', 'PILL', 'SAT', 'SWAP'];
 
-const TOKEN_CONFIG: Record<string, { color: string; bg: string; border: string; icon: string; img?: string }> = {
-  BTC:  { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20', icon: '₿', img: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png' },
-  MOTO: { color: 'text-brand-400',  bg: 'bg-brand-500/10',  border: 'border-brand-500/20',  icon: 'M',     img: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png' },
-  PILL: { color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20', icon: 'P',     img: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png' },
-  SAT:  { color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20', icon: 'S' },
-  SWAP: { color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20',   icon: 'SW' },
+const TOKEN_CONFIG: Record<string, { color: string; bg: string; border: string }> = {
+  BTC:  { color: 'text-orange-400', bg: 'bg-orange-500/10', border: 'border-orange-500/20' },
+  MOTO: { color: 'text-brand-400',  bg: 'bg-brand-500/10',  border: 'border-brand-500/20'  },
+  PILL: { color: 'text-purple-400', bg: 'bg-purple-500/10', border: 'border-purple-500/20' },
+  SAT:  { color: 'text-yellow-400', bg: 'bg-yellow-500/10', border: 'border-yellow-500/20' },
+  SWAP: { color: 'text-blue-400',   bg: 'bg-blue-500/10',   border: 'border-blue-500/20'   },
 };
+
+// ── Token icon with onError fallback ─────────────────────────────────
+function TokenIcon({ symbol, color }: { symbol: string; color: string }) {
+  const storeIcons = useAppStore((s) => s.tokenIcons);
+  const [err, setErr] = useState(false);
+  const key = symbol.toUpperCase();
+  const url = storeIcons[key] ?? STATIC_TOKEN_ICONS[key];
+  const abbr = symbol.replace(/[^A-Z0-9]/gi, '').slice(0, 2).toUpperCase();
+  if (url && !err) {
+    return (
+      <img
+        src={url}
+        alt={symbol}
+        className="w-8 h-8 object-contain rounded-full"
+        onError={() => setErr(true)}
+      />
+    );
+  }
+  return <span className={`text-xs font-bold ${color}`}>{abbr}</span>;
+}
+
 
 // ── Breakdown row ─────────────────────────────────────────────────────
 interface TokenBreakdown {
@@ -134,7 +164,7 @@ export function TokenTotalsCard({ positions }: Props) {
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
         {totals.map(t => {
           const cfg = TOKEN_CONFIG[t.symbol] ?? {
-            color: 'text-dark-300', bg: 'bg-dark-700/30', border: 'border-dark-600/30', icon: t.symbol[0],
+            color: 'text-dark-300', bg: 'bg-dark-700/30', border: 'border-dark-600/30',
           };
           return (
             <div
@@ -143,11 +173,8 @@ export function TokenTotalsCard({ positions }: Props) {
             >
               {/* Token header */}
               <div className="flex items-center gap-2">
-                <div className={`w-9 h-9 ${'img' in cfg && cfg.img ? 'rounded-full' : 'rounded-lg'} ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden`}>
-                  {'img' in cfg && cfg.img
-                    ? <img src={cfg.img} alt={t.symbol} className="w-8 h-8 object-contain rounded-full" />
-                    : <span className={`text-xs font-bold ${cfg.color}`}>{cfg.icon}</span>
-                  }
+                <div className={`w-9 h-9 rounded-full ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden`}>
+                  <TokenIcon symbol={t.symbol} color={cfg.color} />
                 </div>
                 <div>
                   <div className={`text-base font-bold ${cfg.color}`}>{fmt(t.total, t.symbol)}</div>
