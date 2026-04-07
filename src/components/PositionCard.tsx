@@ -16,11 +16,73 @@ function symbolAbbr(symbol: string): string {
   return clean.slice(0, 2).toUpperCase();
 }
 
-/** Token avatar — shows logo if available, otherwise first 1-2 chars */
+/**
+ * Token avatar — shows logo if available, otherwise first 1-2 chars.
+ * For LP tokens (symbol contains '/'), shows a split icon with both halves.
+ */
 function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
-  const url = TOKEN_ICONS[symbol.toUpperCase()];
-  const abbr = symbolAbbr(symbol);
+  const px = size * 4; // Tailwind unit → px (w-8 = 32px)
   const sizeClass = `w-${size} h-${size}`;
+
+  // ── LP split icon ──────────────────────────────────────────────────────
+  if (symbol.includes('/')) {
+    const [left, right] = symbol.split('/');
+    const leftUrl  = TOKEN_ICONS[(left  ?? '').toUpperCase()];
+    const rightUrl = TOKEN_ICONS[(right ?? '').toUpperCase()];
+    const leftAbbr  = symbolAbbr(left  ?? '');
+    const rightAbbr = symbolAbbr(right ?? '');
+
+    if (leftUrl && rightUrl) {
+      return <SplitTokenIcon leftUrl={leftUrl} leftAlt={left ?? ''} rightUrl={rightUrl} rightAlt={right ?? ''} size={px} />;
+    }
+
+    // Fallback: split-letter design
+    return (
+      <div style={{ position: 'relative', width: px, height: px, flexShrink: 0 }}>
+        {/* Left half */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0,
+          width: px, height: px,
+          borderRadius: 8,
+          background: 'rgba(99,102,241,0.25)',
+          border: '1px solid rgba(99,102,241,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          clipPath: 'inset(0 50% 0 0)',
+        }}>
+          {leftUrl
+            ? <img src={leftUrl} alt={left ?? ''} style={{ width: px, height: px, objectFit: 'cover', borderRadius: 8 }} />
+            : <span style={{ fontSize: 9, fontWeight: 700, color: '#a5b4fc', paddingRight: 4 }}>{leftAbbr}</span>
+          }
+        </div>
+        {/* Right half */}
+        <div style={{
+          position: 'absolute', top: 0, left: 0,
+          width: px, height: px,
+          borderRadius: 8,
+          background: 'rgba(99,102,241,0.15)',
+          border: '1px solid rgba(99,102,241,0.3)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          clipPath: 'inset(0 0 0 50%)',
+        }}>
+          {rightUrl
+            ? <img src={rightUrl} alt={right ?? ''} style={{ width: px, height: px, objectFit: 'cover', borderRadius: 8 }} />
+            : <span style={{ fontSize: 9, fontWeight: 700, color: '#a5b4fc', paddingLeft: 4 }}>{rightAbbr}</span>
+          }
+        </div>
+        {/* Center divider */}
+        <div style={{
+          position: 'absolute', top: '15%', left: '50%',
+          width: 1.5, height: '70%',
+          background: 'rgba(99,102,241,0.5)',
+          transform: 'translateX(-50%)',
+        }} />
+      </div>
+    );
+  }
+
+  // ── Regular token ──────────────────────────────────────────────────────
+  const url  = TOKEN_ICONS[symbol.toUpperCase()];
+  const abbr = symbolAbbr(symbol);
   if (url) {
     return <img src={url} alt={symbol} className={`${sizeClass} rounded-lg object-contain`} />;
   }
@@ -30,6 +92,7 @@ function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
     </div>
   );
 }
+
 
 
 const STAKING_ADDRESS = '0xab99e31ebb30b8e596d5be1bd1e501ee8e7b7e5ec9dc7ee880f4937b0c929dcb';
@@ -450,17 +513,7 @@ function LPCard({ pos }: { pos: Position }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        {TOKEN_ICONS.MOTO && TOKEN_ICONS.PILL ? (
-          <SplitTokenIcon
-            leftUrl={TOKEN_ICONS.MOTO} leftAlt="MOTO"
-            rightUrl={TOKEN_ICONS.PILL} rightAlt="PILL"
-            size={36}
-          />
-        ) : (
-          <div className="w-9 h-9 bg-blue-500/20 rounded-lg flex items-center justify-center">
-            <Droplets className="w-4 h-4 text-blue-400" />
-          </div>
-        )}
+        <TokenAvatar symbol={pos.token} size={9} />
         <div>
           <div className="text-sm font-semibold text-white">{pos.label}</div>
           <div className="text-xs text-gray-500">Liquidity Position</div>
