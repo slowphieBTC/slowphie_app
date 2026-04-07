@@ -241,6 +241,28 @@ export function usePositions(addresses: string[]) {
           tokenList.map(t => getTokenBalance(t.address, opnetAddr).catch(() => 0n))
         );
 
+        // ── 2e-2. Build rawBal map & remove false-positive farm entries ─────
+        // Some farm contracts (SAT_FARM, SWAP_FARM) return the wallet balance
+        // instead of staked amount for unknown pool ids (selector mismatch).
+        // Signature: staked ≈ walletBalance AND pending === 0  →  false positive.
+        const rawBalMap = new Map<string, bigint>();
+        for (let i = 0; i < tokenList.length; i++) {
+          rawBalMap.set(norm(tokenList[i].address), walletRaw[i]);
+        }
+        for (const [tokenAddr, farmInfos] of farmsByToken) {
+          const rawBal = rawBalMap.get(tokenAddr) ?? 0n;
+          const walBal = formatTokenAmount(rawBal, 18); // most tokens are 18 dec
+          const filtered = farmInfos.filter(f => {
+            // Keep if has real pending reward
+            if (f.pending > 0) return true;
+            // Drop if staked exactly equals wallet balance (false positive)
+            if (walBal > 0 && Math.abs(f.staked - walBal) < 0.0001) return false;
+            return true;
+          });
+          if (filtered.length === 0) farmsByToken.delete(tokenAddr);
+          else farmsByToken.set(tokenAddr, filtered);
+        }
+
         // ── 2f. Build token + LP positions ────────────────────────────────
         for (let i = 0; i < tokenList.length; i++) {
           const token     = tokenList[i];
