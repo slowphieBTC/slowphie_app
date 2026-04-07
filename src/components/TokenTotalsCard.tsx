@@ -65,7 +65,6 @@ function aggregateTokens(positions: Position[]): TokenTotal[] {
         if (pos.amount > 0) add(pos.token, pos.amount, entryLabel, entryType);
         if (pos.rewards > 0 && pos.rewardToken)
           add(pos.rewardToken, pos.rewards, `${pos.label} Harvest (${addrShort})`, 'pending');
-        }
       }
 
     } else if (pos.type === 'lp') {
