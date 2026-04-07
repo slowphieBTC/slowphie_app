@@ -371,27 +371,37 @@ function MultiViewCard({ pos }: { pos: Position }) {
 
 // ── Generic Farm Card (standalone farm pools) ─────────────────────────
 function FarmCard({ pos }: { pos: Position }) {
+  // If no poolId, this is a wallet-only token position (not a staked farm)
+  const isWalletOnly = pos.poolId === undefined;
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         {TOKEN_ICONS[pos.token] ? (
           <img src={TOKEN_ICONS[pos.token]} alt={pos.token} className="w-8 h-8 rounded-lg" />
         ) : (
-          <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
-            <Wheat className="w-4 h-4 text-green-400" />
+          <div className={`w-8 h-8 ${isWalletOnly ? 'bg-yellow-500/20' : 'bg-green-500/20'} rounded-lg flex items-center justify-center`}>
+            {isWalletOnly
+              ? <Wallet className="w-4 h-4 text-yellow-400" />
+              : <Wheat  className="w-4 h-4 text-green-400" />}
           </div>
         )}
         <div>
           <div className="text-sm font-semibold text-white">{pos.label}</div>
           <div className="text-xs text-gray-500">
-            {pos.poolId !== undefined ? `Pool #${pos.poolId}` : 'Farm'}
+            {pos.poolId !== undefined ? `Pool #${pos.poolId}` : 'Wallet Balance'}
           </div>
         </div>
-        <span className="ml-auto badge bg-green-500/20 text-green-300 border border-green-500/30 text-xs px-2 py-0.5 rounded-full">FARM</span>
+        <span className={`ml-auto badge text-xs px-2 py-0.5 rounded-full ${
+          isWalletOnly
+            ? 'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30'
+            : 'bg-green-500/20 text-green-300 border border-green-500/30'
+        }`}>
+          {isWalletOnly ? 'TOKEN' : 'FARM'}
+        </span>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-dark-700/50 rounded-xl p-3">
-          <div className="text-xs text-gray-500">Already Staked</div>
+          <div className="text-xs text-gray-500">{isWalletOnly ? 'Wallet Balance' : 'Already Staked'}</div>
           <div className="mt-1 text-white font-semibold">{fmt(pos.amount)}</div>
           <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
         </div>
@@ -405,6 +415,7 @@ function FarmCard({ pos }: { pos: Position }) {
     </div>
   );
 }
+
 
 
 // ── LP Underlying breakdown (like staking rewards grid) ──────────────
