@@ -10,13 +10,27 @@ const TOKEN_ICONS: Record<string, string> = {
   BTC:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
 };
 
-// Fallback badge colors for tokens without logo images
-const TOKEN_COLORS: Record<string, string> = {
-  SWAP:          'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30',
-  'LP SWAP/MOTO':'bg-indigo-500/20 text-indigo-300 border border-indigo-500/30',
-  SAT:           'bg-yellow-500/20 text-yellow-300 border border-yellow-500/30',
-  BTC:           'bg-orange-500/20 text-orange-300 border border-orange-500/30',
-};
+/** Returns up to 2 meaningful chars from a symbol for the avatar fallback */
+function symbolAbbr(symbol: string): string {
+  const clean = symbol.replace(/[^A-Z0-9]/gi, '');
+  return clean.slice(0, 2).toUpperCase();
+}
+
+/** Token avatar — shows logo if available, otherwise first 1-2 chars */
+function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
+  const url = TOKEN_ICONS[symbol.toUpperCase()];
+  const abbr = symbolAbbr(symbol);
+  const sizeClass = `w-${size} h-${size}`;
+  if (url) {
+    return <img src={url} alt={symbol} className={`${sizeClass} rounded-lg object-contain`} />;
+  }
+  return (
+    <div className={`${sizeClass} rounded-lg bg-dark-700/80 border border-dark-600/50 flex items-center justify-center shrink-0`}>
+      <span className="text-xs font-bold text-gray-300">{abbr}</span>
+    </div>
+  );
+}
+
 
 const STAKING_ADDRESS = '0xab99e31ebb30b8e596d5be1bd1e501ee8e7b7e5ec9dc7ee880f4937b0c929dcb';
 
@@ -174,13 +188,7 @@ function StakeCard({ pos }: { pos: Position }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        {TOKEN_ICONS.MOTO ? (
-          <img src={TOKEN_ICONS.MOTO} alt="MOTO" className="w-8 h-8 rounded-lg" />
-        ) : (
-          <div className="w-8 h-8 bg-brand-500/20 rounded-lg flex items-center justify-center">
-            <TrendingUp className="w-4 h-4 text-brand-400" />
-          </div>
-        )}
+        <TokenAvatar symbol="MOTO" />
         <div>
           <div className="text-sm font-semibold text-white">{pos.label}</div>
           <div className="text-xs text-gray-500">MotoSwap Stake</div>
@@ -255,25 +263,7 @@ function MultiViewCard({ pos }: { pos: Position }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
-        {iconUrl ? (
-          <img src={iconUrl} alt={token} className="w-8 h-8 rounded-lg" />
-        ) : token === 'SAT' ? (
-          <div className="w-8 h-8 bg-yellow-500/20 rounded-lg flex items-center justify-center border border-yellow-500/30">
-            <span className="text-yellow-300 font-bold text-sm">S</span>
-          </div>
-        ) : token === 'SWAP' ? (
-          <div className="w-8 h-8 bg-cyan-500/20 rounded-lg flex items-center justify-center border border-cyan-500/30">
-            <span className="text-cyan-300 font-bold text-xs">SW</span>
-          </div>
-        ) : token === 'LP SWAP/MOTO' ? (
-          <div className="w-8 h-8 bg-indigo-500/20 rounded-lg flex items-center justify-center border border-indigo-500/30">
-            <Droplets className="w-4 h-4 text-indigo-300" />
-          </div>
-        ) : (
-          <div className="w-8 h-8 bg-green-500/20 rounded-lg flex items-center justify-center">
-            <Wheat className="w-4 h-4 text-green-400" />
-          </div>
-        )}
+        <TokenAvatar symbol={token} />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-white">{token}</div>
           <div className="text-xs text-gray-500 truncate">
@@ -376,15 +366,7 @@ function FarmCard({ pos }: { pos: Position }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        {TOKEN_ICONS[pos.token] ? (
-          <img src={TOKEN_ICONS[pos.token]} alt={pos.token} className="w-8 h-8 rounded-lg" />
-        ) : (
-          <div className={`w-8 h-8 ${isWalletOnly ? 'bg-yellow-500/20' : 'bg-green-500/20'} rounded-lg flex items-center justify-center`}>
-            {isWalletOnly
-              ? <Wallet className="w-4 h-4 text-yellow-400" />
-              : <Wheat  className="w-4 h-4 text-green-400" />}
-          </div>
-        )}
+        <TokenAvatar symbol={pos.token} />
         <div>
           <div className="text-sm font-semibold text-white">{pos.label}</div>
           <div className="text-xs text-gray-500">
