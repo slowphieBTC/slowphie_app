@@ -29,7 +29,7 @@ export default function OpStrat() {
   const latestBlock    = useAppStore((s) => s.latestBlock);
 
   const addressStrings = addresses.map((a) => a.address);
-  const { positions, loading, error, refresh } = usePositions(addressStrings);
+  const { positions, loading, refreshing, error, refresh } = usePositions(addressStrings);
 
   const stakeCount = positions.filter((p: Position) => p.type === 'stake').length;
   const farmCount  = positions.filter((p: Position) => p.type === 'farm').length;
@@ -116,11 +116,11 @@ export default function OpStrat() {
             </button>
             <button
               onClick={refresh}
-              disabled={loading}
-              className="btn-ghost flex items-center gap-1.5 text-sm"
+              disabled={loading || refreshing}
+              className="btn-ghost flex items-center gap-1.5 text-sm disabled:opacity-50"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-              Refresh
+              <RefreshCw className={`w-3.5 h-3.5 transition-transform ${(loading || refreshing) ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Refreshing…' : 'Refresh'}
             </button>
           </div>
         </motion.div>

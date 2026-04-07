@@ -42,11 +42,12 @@ export function usePositions(addresses: string[]) {
   const setAllPositions     = useAppStore((s) => s.setAllPositions);
 
   // loading = true only when no cached data yet
-  const [loading, setLoading] = useState(
+  const [loading, setLoading]       = useState(
     () => allPositions.length === 0 && addresses.length > 0
   );
-  const [error, setError]     = useState<string | null>(null);
-  const fetchingRef           = useRef(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+  const fetchingRef                  = useRef(false);
 
   const fetchAll = useCallback(async (silent = false) => {
     if (!addresses.length) { setAllPositions([]); return; }
@@ -246,7 +247,12 @@ export function usePositions(addresses: string[]) {
   }, [addresses.join(',')]);
 
   // Manual refresh (shows loading only if cache is empty)
-  const refresh = useCallback(() => fetchAll(allPositions.length > 0), [fetchAll, allPositions.length]);
+  // Manual refresh — always shows spin via refreshing state
+  const refresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchAll(allPositions.length > 0);
+    setRefreshing(false);
+  }, [fetchAll, allPositions.length]);
 
-  return { positions: allPositions, loading, error, refresh };
+  return { positions: allPositions, loading, refreshing, error, refresh };
 }
