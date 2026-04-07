@@ -56,9 +56,16 @@ function aggregateTokens(positions: Position[]): TokenTotal[] {
           if (f.pending > 0) add(f.rewardToken, f.pending, `${f.farmName} Harvest (${addrShort})`, 'pending');
         });
       } else {
-        if (pos.amount > 0) add(pos.token, pos.amount, `${pos.label} Staked (${addrShort})`, 'staked');
+        // Wallet-only token (no active farm): show as Wallet, not Staked
+        const hasActiveFarm = pos.farms?.some(f => f.staked > 0 || f.pending > 0) ?? false;
+        const entryType: TokenBreakdown['type'] = hasActiveFarm ? 'staked' : 'wallet';
+        const entryLabel = hasActiveFarm
+          ? `${pos.label} Staked (${addrShort})`
+          : `${pos.label} Wallet (${addrShort})`;
+        if (pos.amount > 0) add(pos.token, pos.amount, entryLabel, entryType);
         if (pos.rewards > 0 && pos.rewardToken)
           add(pos.rewardToken, pos.rewards, `${pos.label} Harvest (${addrShort})`, 'pending');
+        }
       }
 
     } else if (pos.type === 'lp') {
