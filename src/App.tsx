@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { Routes, Route } from 'react-router-dom'
 import AppBar from './components/AppBar'
 import { StatsBar } from './components/StatsBar'
@@ -46,6 +47,7 @@ function AppInner() {
           <Route path="/about" element={<About />} />
         </Routes>
       </main>
+      <Analytics />
     </div>
   )
 }
