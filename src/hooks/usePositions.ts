@@ -7,6 +7,7 @@ import {
   getAllSwapFarmPositions,
   getTokenBalance,
   getLPUnderlying,
+  getBTCNativeBalance,
   formatTokenAmount,
   CONTRACTS,
 } from '../api/opnet';
@@ -140,11 +141,12 @@ export function usePositions(addresses: string[]) {
         const opnetAddr = await resolveToOpnetAddress(rawAddr);
 
         // ── 2a. Fetch all farm + staking data in parallel ────────────────
-        const [staking, pillFarmPools, satFarmPools, swapFarmPools] = await Promise.all([
+        const [staking, pillFarmPools, satFarmPools, swapFarmPools, btcWalletBalance] = await Promise.all([
           getStakingInfo(opnetAddr),
           getAllFarmPositions(opnetAddr),
           getAllSatFarmPositions(opnetAddr),
           getAllSwapFarmPositions(opnetAddr),
+          getBTCNativeBalance(rawAddr),
         ]);
 
         // ── 2b. MOTO Staking position ─────────────────────────────────────
@@ -168,34 +170,53 @@ export function usePositions(addresses: string[]) {
         }
 
         // ── 2c. BTC self-custody farm positions (pool id 0 in each farm) ──
+        // Merge all BTC farm positions into a single MultiViewCard
+        const btcFarms: FarmInfo[] = [];
         const pillBtc = pillFarmPools.find(f => f.poolId === 0);
         if (pillBtc && (pillBtc.staked > 0n || pillBtc.pendingReward > 0n)) {
-          positions.push({
-            id: `pillfarm-btc-${rawAddr}`, address: rawAddr, type: 'farm',
-            label: 'BTC Farm · PILL Farm', token: 'BTC',
-            amount: formatTokenAmount(pillBtc.staked, 8),
-            rewards: formatTokenAmount(pillBtc.pendingReward, 18),
-            rewardToken: 'PILL', contractAddress: PILL_FARM_ADDR, poolId: 0,
+          btcFarms.push({
+            farmName: 'PILL Farm', farmContract: PILL_FARM_ADDR,
+            farmLink: PILL_LINK, poolId: 0,
+            staked: formatTokenAmount(pillBtc.staked, 8),
+            pending: formatTokenAmount(pillBtc.pendingReward, 18),
+            rewardToken: 'PILL',
           });
         }
         const satBtc = satFarmPools.find(f => f.poolId === 0);
         if (satBtc && (satBtc.staked > 0n || satBtc.pendingReward > 0n)) {
-          positions.push({
-            id: `satfarm-btc-${rawAddr}`, address: rawAddr, type: 'farm',
-            label: "Satoshi's Farm · BTC", token: 'BTC',
-            amount: formatTokenAmount(satBtc.staked, 8),
-            rewards: formatTokenAmount(satBtc.pendingReward, 18),
-            rewardToken: 'SAT', contractAddress: SAT_FARM_ADDR, poolId: 0,
+          btcFarms.push({
+            farmName: "Satoshi's Farm", farmContract: SAT_FARM_ADDR,
+            farmLink: SAT_LINK, poolId: 0,
+            staked: formatTokenAmount(satBtc.staked, 8),
+            pending: formatTokenAmount(satBtc.pendingReward, 18),
+            rewardToken: 'SAT',
           });
         }
         const swapBtc = swapFarmPools.find(f => f.poolId === 0);
         if (swapBtc && (swapBtc.staked > 0n || swapBtc.pendingReward > 0n)) {
+          btcFarms.push({
+            farmName: 'SWAP Farm', farmContract: SWAP_FARM_ADDR,
+            farmLink: SWAP_LINK, poolId: 0,
+            staked: formatTokenAmount(swapBtc.staked, 8),
+            pending: formatTokenAmount(swapBtc.pendingReward, 18),
+            rewardToken: 'SWAP',
+          });
+        }
+        if (btcWalletBalance > 0 || btcFarms.length > 0) {
+          const primaryFarm = btcFarms[0];
           positions.push({
-            id: `swapfarm-btc-${rawAddr}`, address: rawAddr, type: 'farm',
-            label: 'SWAP Farm · BTC', token: 'BTC',
-            amount: formatTokenAmount(swapBtc.staked, 8),
-            rewards: formatTokenAmount(swapBtc.pendingReward, 18),
-            rewardToken: 'SWAP', contractAddress: SWAP_FARM_ADDR, poolId: 0,
+            id:              `btc-${rawAddr}`,
+            address:         rawAddr,
+            type:            'farm',
+            label:           'Bitcoin',
+            token:           'BTC',
+            amount:          btcWalletBalance,
+            rewards:         primaryFarm?.pending ?? 0,
+            rewardToken:     primaryFarm?.rewardToken ?? null,
+            contractAddress: PILL_FARM_ADDR,
+            hasFarmView:     btcFarms.length > 0,
+            walletBalance:   btcWalletBalance,
+            farms:           btcFarms.length > 0 ? btcFarms : undefined,
           });
         }
 

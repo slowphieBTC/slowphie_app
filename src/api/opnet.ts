@@ -274,6 +274,26 @@ export async function getTokenBalance(tokenContract: string, userAddress: string
   return contractCallUint256(tokenContract, SEL.BALANCE_OF, encodeAddress(userAddress));
 }
 
+// ── BTC Native balance ─────────────────────────────────────────────────
+export async function getBTCNativeBalance(address: string): Promise<number> {
+  try {
+    const res = await axios.post(OPNET_RPC, {
+      jsonrpc: '2.0', id: rpcId++,
+      method: 'btc_getBalance',
+      params: [{ address, filterOrdinals: true }],
+    });
+    const result = res.data?.result;
+    if (!result) return 0;
+    // Result may be { confirmed: satoshis, unconfirmed: satoshis } or just a number
+    const satoshis = typeof result === 'object'
+      ? BigInt(result.confirmed ?? result.total ?? result.balance ?? 0)
+      : BigInt(result ?? 0);
+    return Number(satoshis) / 1e8;
+  } catch {
+    return 0;
+  }
+}
+
 // ── Main Staking: stake MOTO, earn multiple OP-20 rewards ─────────────
 export interface StakingRewardToken {
   address: string;
