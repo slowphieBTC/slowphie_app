@@ -282,16 +282,28 @@ export function usePositions(addresses: string[]) {
               ? `${token.token0Symbol}/${token.token1Symbol}`
               : token.symbol;
 
-            // Compute underlying using best available balance
+            // Compute underlying separately for wallet balance and staked amount
             let lpUnderlying;
-            const balForCalc = rawBal > 0n ? rawBal : stakedRaw;
-            if (balForCalc > 0n && token.token0Symbol && token.token1Symbol) {
+            let lpUnderlyingStaked;
+
+            if (rawBal > 0n && token.token0Symbol && token.token1Symbol) {
               try {
                 lpUnderlying = await getLPUnderlying(
                   token.address,
                   token.token0Symbol, 18,
                   token.token1Symbol, 18,
-                  balForCalc,
+                  rawBal,
+                );
+              } catch { /* ignore */ }
+            }
+
+            if (stakedRaw > 0n && token.token0Symbol && token.token1Symbol) {
+              try {
+                lpUnderlyingStaked = await getLPUnderlying(
+                  token.address,
+                  token.token0Symbol, 18,
+                  token.token1Symbol, 18,
+                  stakedRaw,
                 );
               } catch { /* ignore */ }
             }
@@ -311,6 +323,7 @@ export function usePositions(addresses: string[]) {
               walletBalance:   walletAmt,
               farms:           hasFarm ? farms : undefined,
               lpUnderlying,
+              lpUnderlyingStaked,
             });
 
           } else {

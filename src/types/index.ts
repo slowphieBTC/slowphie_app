@@ -43,7 +43,8 @@ export interface Position {
   farmPending?: number;
   farmPoolId?: number;
   stakingRewards?: StakingReward[];  // multi-token staking rewards
-  lpUnderlying?: LPUnderlying;       // underlying token amounts for LP positions
+  lpUnderlying?: LPUnderlying;       // underlying token amounts for LP wallet balance
+  lpUnderlyingStaked?: LPUnderlying; // underlying token amounts for LP staked amount
 }
 
 export type StakePosition = Position & { type: 'stake' };
