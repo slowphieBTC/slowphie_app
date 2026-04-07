@@ -229,7 +229,7 @@ async function getBTCStakedAmount(farmContract: string, userAddress: string): Pr
       try {
         const res = await axios.post(OPNET_RPC, {
           jsonrpc: '2.0', id: rpcId++,
-          method: 'btc_getTransaction',
+          method: 'btc_getTransactionByHash',
           params: [txHash],
         });
 
