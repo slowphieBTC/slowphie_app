@@ -62,11 +62,19 @@ function aggregateTokens(positions: Position[]): TokenTotal[] {
       }
 
     } else if (pos.type === 'lp') {
+      // Wallet LP underlying
       if (pos.lpUnderlying) {
         const { token0Symbol, token1Symbol, token0Amount, token1Amount } = pos.lpUnderlying;
-        if (token0Amount > 0) add(token0Symbol, token0Amount, `${pos.label} LP Pool (${addrShort})`, 'lp');
-        if (token1Amount > 0) add(token1Symbol, token1Amount, `${pos.label} LP Pool (${addrShort})`, 'lp');
+        if (token0Amount > 0) add(token0Symbol, token0Amount, `${pos.label} Wallet LP (${addrShort})`, 'lp');
+        if (token1Amount > 0) add(token1Symbol, token1Amount, `${pos.label} Wallet LP (${addrShort})`, 'lp');
       }
+      // Staked LP underlying (from all farms)
+      if (pos.lpUnderlyingStaked) {
+        const { token0Symbol, token1Symbol, token0Amount, token1Amount } = pos.lpUnderlyingStaked;
+        if (token0Amount > 0) add(token0Symbol, token0Amount, `${pos.label} Staked LP (${addrShort})`, 'lp');
+        if (token1Amount > 0) add(token1Symbol, token1Amount, `${pos.label} Staked LP (${addrShort})`, 'lp');
+      }
+      // Farm harvest rewards
       pos.farms?.forEach(f => {
         if (f.pending > 0) add(f.rewardToken, f.pending, `${f.farmName} Harvest (${addrShort})`, 'pending');
       });
