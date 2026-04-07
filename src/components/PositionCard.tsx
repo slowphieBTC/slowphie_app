@@ -247,8 +247,6 @@ function MultiViewCard({ pos }: { pos: Position }) {
 
   const walletBal = pos.walletBalance ?? 0;
   const token     = pos.token;
-  const iconUrl      = TOKEN_ICONS[token];
-  const tokenBadgeCls = TOKEN_COLORS[token] ?? 'bg-gray-500/20 text-gray-300 border border-gray-500/30';
 
   // Current farm (if viewing a farm tab)
   const activeFarm: FarmInfo | null = typeof view === 'number' ? (farms[view] ?? null) : null;
