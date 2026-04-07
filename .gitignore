@@ -8,3 +8,6 @@ dist/
 .a0proj/agents.json
 .a0proj/secrets.env
 .a0proj/variables.env
+
+# Agent Zero project config
+.a0proj/
