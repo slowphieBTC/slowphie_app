@@ -20,6 +20,11 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/opnet-rpc/, '/api/v1/json-rpc'),
         secure: true,
       },
+      '/slowphie-api': {
+        target: 'http://172.17.0.2:3001',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/slowphie-api/, ''),
+      },
     },
   }
 })
