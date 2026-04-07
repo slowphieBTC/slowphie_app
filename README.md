@@ -160,3 +160,8 @@ Slowphie pulls real-time data from two sources:
 Built on OPNet &nbsp;·&nbsp; Bitcoin Mainnet &nbsp;·&nbsp; No bridges &nbsp;·&nbsp; No custody
 
 </div>
+
+## Branches
+- `main` → Production (Vercel auto-deploy)
+- `develop` → Staging preview (Vercel preview URL)
+- `feature/*` → Feature branches

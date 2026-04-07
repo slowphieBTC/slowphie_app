@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const OPNET_RPC = '/opnet-rpc';
+const OPNET_RPC = 'https://mainnet.opnet.org/api/v1/json-rpc';
 
 // ── Contract addresses ────────────────────────────────────────────────
 export const CONTRACTS = {
