@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { RefreshCw, Wallet, Settings, TrendingUp, Wheat, Droplets } from 'lucide-react';
+import { RefreshCw, Wallet, Settings, TrendingUp, Wheat, Droplets, Coins } from 'lucide-react';
 import { useAppStore } from '../store';
 import { usePositions } from '../hooks/usePositions';
 import { PositionCard } from '../components/PositionCard';
@@ -8,11 +8,12 @@ import { EmptyState } from '../components/EmptyState';
 import { TokenTotalsCard } from '../components/TokenTotalsCard';
 import type { Position } from '../types';
 
-function AddressSummaryBadge({ count, type }: { count: number; type: 'stake' | 'farm' | 'lp' }) {
+function AddressSummaryBadge({ count, type }: { count: number; type: 'stake' | 'farm' | 'lp' | 'token' }) {
   const config = {
     stake: { icon: TrendingUp, label: 'Stake', color: 'text-brand-400', bg: 'bg-brand-500/10 border-brand-500/20' },
     farm:  { icon: Wheat,      label: 'Farm',  color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
     lp:    { icon: Droplets,   label: 'LP',    color: 'text-blue-400',  bg: 'bg-blue-500/10 border-blue-500/20'  },
+    token: { icon: Coins,      label: 'Token', color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
   };
   const { icon: Icon, label, color, bg } = config[type];
   return (
@@ -32,8 +33,14 @@ export default function OpStrat() {
   const { positions, loading, refreshing, error, refresh } = usePositions(addressStrings);
 
   const stakeCount = positions.filter((p: Position) => p.type === 'stake').length;
-  const farmCount  = positions.filter((p: Position) => p.type === 'farm').length;
-  const lpCount    = positions.filter((p: Position) => p.type === 'lp').length;
+  // wallet-only token cards: type='farm', no real farm staked/pending activity
+  const tokenCount  = positions.filter((p: Position) =>
+    p.type === 'farm' && !p.farms?.some(f => f.staked > 0 || f.pending > 0)
+  ).length;
+  const farmCount   = positions.filter((p: Position) =>
+    p.type === 'farm' && p.farms?.some(f => f.staked > 0 || f.pending > 0)
+  ).length;
+  const lpCount     = positions.filter((p: Position) => p.type === 'lp').length;
 
   if (addresses.length === 0) {
     return (
@@ -107,6 +114,7 @@ export default function OpStrat() {
             {stakeCount > 0 && <AddressSummaryBadge count={stakeCount} type="stake" />}
             {farmCount  > 0 && <AddressSummaryBadge count={farmCount}  type="farm"  />}
             {lpCount    > 0 && <AddressSummaryBadge count={lpCount}    type="lp"    />}
+            {tokenCount > 0 && <AddressSummaryBadge count={tokenCount} type="token" />}
             <button
               onClick={() => setSettingsOpen(true)}
               className="btn-ghost flex items-center gap-1.5 text-sm"
