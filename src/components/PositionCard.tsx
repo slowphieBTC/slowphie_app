@@ -397,6 +397,9 @@ function MultiViewCard({ pos }: { pos: Position }) {
               </div>
             </div>
           )}
+          {pos.lpUnderlying && (pos.lpUnderlying.token0Amount > 0 || pos.lpUnderlying.token1Amount > 0) && (
+            <LPUnderlyingGrid und={pos.lpUnderlying} />
+          )}
           <div className="text-xs text-gray-600 text-center">
             {activeFarm.farmName} · Pool #{activeFarm.poolId}
           </div>
