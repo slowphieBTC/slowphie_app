@@ -126,9 +126,17 @@ export const useAppStore = create<AppState>()(
 
       tokenIcons: {
         // Static seeds — always available regardless of server
-        BTC:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
-        MOTO: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
-        PILL: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
+        BTC:   'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
+        MOTO:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
+        PILL:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
+        MCHAD: '/tokens/MCHAD.jpg',
+        BLUE:  '/tokens/BLUE.jpg',
+        // addr: keys for tokens with known contract addresses — used by resolveIcon
+        // when contractAddress is provided (collision-safe icon lookup)
+        'addr:0x8d325ab5516f23dce15d650f58a160a2c1c2515bda3f0212ca0b8b2b5705b4ab': '/tokens/MCHAD.jpg',
+        'addr:0x9b344461172333d558047b30dafa5608295e4b413423ba4092a638b0003c5fa7': '/tokens/BLUE.jpg',
+        'addr:0xc3d18f9d7db3f26ed107a9f4a4c65eef14c1ca73db5684ef9789fdd4fbb3ea9a': 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
+        'addr:0xc6c3674b1c6c4ca3d4b3652d1d6fc2b197f45c4ad1eda90d37952472719d1c05': 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
       },
       mergeTokenIcons: (icons) =>
         set((s) => ({ tokenIcons: { ...s.tokenIcons, ...icons } })),

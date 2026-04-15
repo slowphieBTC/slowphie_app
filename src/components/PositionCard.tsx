@@ -6,9 +6,11 @@ import type { Position, FarmInfo, LPUnderlying } from '../types';
 
 // Static fallback token logo URLs (used when store has no entry)
 const STATIC_TOKEN_ICONS: Record<string, string> = {
-  PILL: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
-  MOTO: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
-  BTC:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
+  PILL:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
+  MOTO:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
+  BTC:   'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
+  BLUE:  '/tokens/BLUE.jpg',
+  MCHAD: '/tokens/MCHAD.jpg',
 };
 
 /** Returns up to 2 meaningful chars from a symbol for the avatar fallback */
@@ -17,9 +19,19 @@ function symbolAbbr(symbol: string): string {
   return clean.slice(0, 2).toUpperCase();
 }
 
-/** Merge store + static icons, return URL or undefined */
-function resolveIcon(symbol: string, storeIcons: Record<string, string>): string | undefined {
+/** Merge store + static icons, return URL or undefined.
+ * Prefers addr: key (contract-address-specific) over symbol key to avoid
+ * cross-contamination between two tokens that share the same symbol.
+ */
+function resolveIcon(symbol: string, storeIcons: Record<string, string>, contractAddress?: string): string | undefined {
   const key = symbol.toUpperCase();
+  if (contractAddress) {
+    const addrKey = `addr:${contractAddress.toLowerCase()}`;
+    // When contractAddress is known: ONLY use addr: key or STATIC fallback.
+    // Never fall through to symbol key — prevents same-symbol cross-contamination
+    // (e.g. two PEPE tokens: icon-less one must NOT show the other's icon).
+    return storeIcons[addrKey] ?? STATIC_TOKEN_ICONS[key];
+  }
   return storeIcons[key] ?? STATIC_TOKEN_ICONS[key];
 }
 
@@ -37,9 +49,9 @@ function LetterAvatar({ abbr, sizeClass }: { abbr: string; sizeClass: string }) 
  * Uses onError to fall back to letter avatar if image 404s.
  * For LP tokens (symbol contains '/'), shows a split icon with both halves.
  */
-function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
+function TokenAvatar({ symbol, contractAddress, size = 8 }: { symbol: string; contractAddress?: string; size?: number }) {
   const storeIcons = useAppStore((s) => s.tokenIcons);
-  const px = size * 4; // Tailwind unit → px (w-8 = 32px)
+  const px = size * 4;
   const sizeClass = `w-${size} h-${size}`;
   const [leftErr,  setLeftErr]  = useState(false);
   const [rightErr, setRightErr] = useState(false);
@@ -48,8 +60,8 @@ function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
   // ── LP split icon ──────────────────────────────────────────────────────
   if (symbol.includes('/')) {
     const [left, right] = symbol.split('/');
-    const leftUrl  = resolveIcon(left  ?? '', storeIcons);
-    const rightUrl = resolveIcon(right ?? '', storeIcons);
+    const leftUrl   = resolveIcon(left  ?? '', storeIcons);
+    const rightUrl  = resolveIcon(right ?? '', storeIcons);
     const leftAbbr  = symbolAbbr(left  ?? '');
     const rightAbbr = symbolAbbr(right ?? '');
 
@@ -62,11 +74,9 @@ function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
         onRightError={() => setRightErr(true)}
       />;
     }
-
-    // Fallback: split-letter design (used if no URL or image error)
+    // Fallback: split-letter design
     return (
       <div style={{ position: 'relative', width: px, height: px, flexShrink: 0 }}>
-        {/* Left half */}
         <div style={{
           position: 'absolute', top: 0, left: 0, width: px, height: px,
           borderRadius: 8, background: 'rgba(99,102,241,0.25)',
@@ -79,7 +89,6 @@ function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
             : <span style={{ fontSize: 9, fontWeight: 700, color: '#a5b4fc', paddingRight: 4 }}>{leftAbbr}</span>
           }
         </div>
-        {/* Right half */}
         <div style={{
           position: 'absolute', top: 0, left: 0, width: px, height: px,
           borderRadius: 8, background: 'rgba(99,102,241,0.15)',
@@ -92,7 +101,6 @@ function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
             : <span style={{ fontSize: 9, fontWeight: 700, color: '#a5b4fc', paddingLeft: 4 }}>{rightAbbr}</span>
           }
         </div>
-        {/* Center divider */}
         <div style={{
           position: 'absolute', top: '15%', left: '50%',
           width: 1.5, height: '70%',
@@ -103,19 +111,20 @@ function TokenAvatar({ symbol, size = 8 }: { symbol: string; size?: number }) {
     );
   }
 
-  // ── Regular token ──────────────────────────────────────────────────────
-  const url  = resolveIcon(symbol, storeIcons);
+  // ── Regular token — prefer addr: key to avoid same-symbol collision ────
+  const url  = resolveIcon(symbol, storeIcons, contractAddress);
   const abbr = symbolAbbr(symbol);
   if (url && !imgErr) {
     return <img
       src={url}
       alt={symbol}
-      className={`${sizeClass} rounded-lg object-contain`}
+      className={`${sizeClass} rounded-full object-cover`}
       onError={() => setImgErr(true)}
     />;
   }
   return <LetterAvatar abbr={abbr} sizeClass={sizeClass} />;
 }
+
 
 
 
@@ -141,6 +150,15 @@ function fmt(n: number): string {
   return n.toFixed(4);
 }
 
+/** High-precision formatter for LP token amounts */
+function fmtLp(n: number): string {
+  if (n === 0) return '\u2014';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(4) + 'M';
+  if (n >= 1_000)    return (n / 1_000).toFixed(6) + 'K';
+  return n.toFixed(6);
+}
+
+
 // ── Split LP Token Icon: two tokens, each showing half ────────────────
 function SplitTokenIcon({ 
   leftUrl, leftAlt, rightUrl, rightAlt, size = 36, onLeftError, onRightError
@@ -157,7 +175,7 @@ function SplitTokenIcon({
         style={{
           position: 'absolute', top: 0, left: 0,
           width: size, height: size,
-          borderRadius: 8,
+          borderRadius: '50%',
           clipPath: 'inset(0 50% 0 0)',
           objectFit: 'cover',
         }}
@@ -169,7 +187,7 @@ function SplitTokenIcon({
         style={{
           position: 'absolute', top: 0, left: 0,
           width: size, height: size,
-          borderRadius: 8,
+          borderRadius: '50%',
           clipPath: 'inset(0 0 0 50%)',
           objectFit: 'cover',
         }}
@@ -305,9 +323,7 @@ function StakeCard({ pos }: { pos: Position }) {
             {rewards.map((r) => (
               <div key={r.tokenAddress} className="bg-dark-700/50 rounded-xl p-3">
                 <div className="flex items-center gap-1.5">
-                  {(STATIC_TOKEN_ICONS[r.symbol]) ? (
-                    <img src={STATIC_TOKEN_ICONS[r.symbol]} alt={r.symbol} className="w-4 h-4 rounded" />
-                  ) : null}
+                  <TokenAvatar symbol={r.symbol} contractAddress={r.tokenAddress} size={4} />
                   <span className="text-xs text-gray-400">{r.symbol}</span>
                 </div>
                 <div className={`mt-1 font-semibold ${r.pending > 0 ? (rewardColor[r.symbol] ?? 'text-green-400') : 'text-gray-600'}`}>
@@ -355,7 +371,7 @@ function MultiViewCard({ pos }: { pos: Position }) {
     <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center gap-2">
-        <TokenAvatar symbol={token} />
+        <TokenAvatar symbol={token} contractAddress={pos.contractAddress} />
         <div className="min-w-0">
           <div className="text-sm font-semibold text-white">{token}</div>
           <div className="text-xs text-gray-500 truncate">
@@ -461,7 +477,7 @@ function FarmCard({ pos }: { pos: Position }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
-        <TokenAvatar symbol={pos.token} />
+        <TokenAvatar symbol={pos.token} contractAddress={pos.contractAddress} />
         <div>
           <div className="text-sm font-semibold text-white">{pos.label}</div>
           <div className="text-xs text-gray-500">
@@ -542,46 +558,173 @@ function LPUnderlyingGrid({ und }: { und: LPUnderlying }) {
   );
 }
 
-// ── LP Card ───────────────────────────────────────────────────────────
-function LPCard({ pos }: { pos: Position }) {
+// ── MCHAD Custom Staking Card (MCHAD_STAKING only) ─────────────────────
+function MchadCard({ pos }: { pos: Position }) {
+  const p = pos.mchadStaking!.positions[0]!;
+  const lockDays = Math.round(p.lockDuration / 86400);
+  const unlockDate = new Date(p.unlockTimestamp * 1000).toLocaleDateString();
+
   return (
     <div className="space-y-4">
+      {/* Header */}
       <div className="flex items-center gap-2">
-        <TokenAvatar symbol={pos.token} size={9} />
-        <div>
-          <div className="text-sm font-semibold text-white">{pos.label}</div>
-          <div className="text-xs text-gray-500">Liquidity Position</div>
+        <TokenAvatar symbol="MCHAD" />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white">MCHAD Staking</div>
+          <div className="text-xs text-gray-500">motochad.com</div>
         </div>
-        <span className="ml-auto badge bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs px-2 py-0.5 rounded-full">LP</span>
+        <span className="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-2 py-0.5 rounded-full">CUSTOM</span>
       </div>
-      <div className="grid grid-cols-2 gap-3">
-        <div className="bg-dark-700/50 rounded-xl p-3">
-          <div className="text-xs text-gray-500">LP Tokens (Staked)</div>
-          <div className="mt-1 text-white font-semibold">{fmt(pos.amount)}</div>
-          <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
+
+      {/* Staked */}
+      <div className="bg-dark-700/50 rounded-xl p-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="text-xs text-gray-500">Staked</div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-purple-400 font-medium">{p.multiplierFormatted}</span>
+            <span className="text-xs text-gray-600">{lockDays}d lock</span>
+          </div>
         </div>
-        <div className="bg-dark-700/50 rounded-xl p-3">
-          <div className="text-xs text-gray-500">Pending Harvest</div>
-          <div className="mt-1 text-blue-400 font-semibold">{fmt(pos.rewards)}</div>
-          <div className="text-xs text-gray-600 mt-0.5">{pos.rewardToken ?? '\u2014'}</div>
-        </div>
+        <div className="text-white font-semibold text-lg">{fmt(parseFloat(p.stakedFormatted))}</div>
+        <div className="text-xs text-gray-500 mt-0.5">Weighted: {fmt(parseFloat(p.stakedWeightedFormatted))}</div>
       </div>
-      {pos.lpUnderlying && (pos.lpUnderlying.token0Amount > 0 || pos.lpUnderlying.token1Amount > 0) && (
-        <LPUnderlyingGrid und={pos.lpUnderlying} />
-      )}
+
+      {/* Pending Harvest */}
+      <div className="bg-dark-700/50 rounded-xl p-3">
+        <div className="text-xs text-gray-500 mb-1">Pending Harvest</div>
+        <div className="text-[#75bbdf] font-semibold text-lg">{fmt(parseFloat(p.unclaimedRewardsFormatted))}</div>
+        <div className="text-xs text-gray-600 mt-0.5">{p.rewardSymbol}</div>
+      </div>
+
+      <div className="text-xs text-gray-600 text-center">Unlocks: {unlockDate}</div>
+
       <AddressRow addr={pos.contractAddress} />
     </div>
   );
 }
 
+// ── LP Card — with optional MCHAD custom staking tab ─────────────────────
+function LPCard({ pos }: { pos: Position }) {
+  const hasMchadTab = !!pos.mchadLpStaking;
+  const [view, setView] = useState<'wallet' | 'mchad'>('wallet');
+
+  const mchad = pos.mchadLpStaking;
+  const lockDays = mchad ? Math.round(mchad.lockDuration / 86400) : 0;
+  const unlockDate = mchad ? new Date(mchad.unlockTimestamp * 1000).toLocaleDateString() : null;
+
+  return (
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <TokenAvatar symbol={pos.token} size={9} />
+        <div className="flex-1 min-w-0">
+          <div className="text-sm font-semibold text-white">{pos.label}</div>
+          <div className="text-xs text-gray-500">{hasMchadTab ? 'motochad.com' : 'Liquidity Position'}</div>
+        </div>
+        <span className="ml-auto badge bg-blue-500/20 text-blue-300 border border-blue-500/30 text-xs px-2 py-0.5 rounded-full">LP</span>
+        {hasMchadTab && (
+          <span className="badge bg-purple-500/20 text-purple-300 border border-purple-500/30 text-xs px-2 py-0.5 rounded-full">CUSTOM</span>
+        )}
+      </div>
+
+      {/* Tabs — only shown when MCHAD tab exists */}
+      {hasMchadTab && (
+        <div className="flex items-center bg-dark-800/60 rounded-lg p-0.5 gap-0.5">
+          <button
+            onClick={() => setView('wallet')}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              view === 'wallet' ? 'bg-yellow-500/20 text-yellow-300 shadow-sm' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Wallet className="w-3 h-3" /> Wallet
+          </button>
+          <button
+            onClick={() => setView('mchad')}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-medium transition-all ${
+              view === 'mchad' ? 'bg-purple-500/20 text-purple-300 shadow-sm' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            <Tractor className="w-3 h-3" /> MCHAD LP
+          </button>
+        </div>
+      )}
+
+      {/* Wallet view */}
+      {view === 'wallet' && (
+        <motion.div
+          key="wallet"
+          initial={{ opacity: 0, x: -8 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="space-y-3"
+        >
+          <div className="bg-dark-700/50 rounded-xl p-4">
+            <div className="text-xs text-gray-500 mb-1">LP Tokens</div>
+            <div className="text-2xl font-bold text-white">{fmtLp(pos.walletBalance ?? pos.amount)}</div>
+            <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
+          </div>
+          {pos.rewards > 0 && (
+            <div className="bg-dark-700/50 rounded-xl p-3">
+              <div className="text-xs text-gray-500">Pending Harvest</div>
+              <div className="mt-1 text-blue-400 font-semibold">{fmt(pos.rewards)}</div>
+              <div className="text-xs text-gray-600 mt-0.5">{pos.rewardToken ?? '\u2014'}</div>
+            </div>
+          )}
+          {pos.lpUnderlying && (pos.lpUnderlying.token0Amount > 0 || pos.lpUnderlying.token1Amount > 0) && (
+            <LPUnderlyingGrid und={pos.lpUnderlying} />
+          )}
+        </motion.div>
+      )}
+
+      {/* MCHAD LP Staking view */}
+      {view === 'mchad' && mchad && (
+        <motion.div
+          key="mchad"
+          initial={{ opacity: 0, x: 8 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="space-y-3"
+        >
+          {/* Row 1: Already Staked | Pending Harvest */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="bg-dark-700/50 rounded-xl p-3">
+              <div className="flex items-center justify-between mb-1">
+                <div className="text-xs text-gray-500">Already Staked</div>
+                <span className="text-xs text-purple-400 font-medium">{mchad.multiplierFormatted}</span>
+              </div>
+              <div className="text-white font-semibold">{fmtLp(parseFloat(mchad.stakedFormatted))}</div>
+              <div className="text-xs text-gray-600 mt-0.5">{lockDays}d lock</div>
+            </div>
+            <div className="bg-dark-700/50 rounded-xl p-3">
+              <div className="text-xs text-gray-500 mb-1">Pending Harvest</div>
+              <div className="text-[#75bbdf] font-semibold">{fmt(parseFloat(mchad.unclaimedRewardsFormatted))}</div>
+              <div className="text-xs text-gray-600 mt-0.5">{mchad.rewardSymbol}</div>
+            </div>
+          </div>
+          {/* Row 2: Pool Composition */}
+          {pos.lpUnderlyingStaked && (pos.lpUnderlyingStaked.token0Amount > 0 || pos.lpUnderlyingStaked.token1Amount > 0) && (
+            <LPUnderlyingGrid und={pos.lpUnderlyingStaked} />
+          )}
+          {unlockDate && <div className="text-xs text-gray-600 text-center">Unlocks: {unlockDate}</div>}
+        </motion.div>
+      )}
+
+      <AddressRow addr={pos.contractAddress} />
+    </div>
+  );
+}
+
+
+
 // ── Main Card Selector ────────────────────────────────────────────────
 export function PositionCard({ position, index = 0 }: Props) {
   const isMulti  = position.hasFarmView === true;
-  const isStake  = position.type === 'stake';
+  const isMchad  = !!position.mchadStaking;
+  const isStake  = position.type === 'stake' && !isMchad;
   const isLP     = position.type === 'lp';
 
   // Border color classes
-  const borderClass = isMulti && position.token === 'PILL'
+  const borderClass = isMchad
+    ? 'from-[#75bbdf]/5 to-[#a260f9]/5 border-[#75bbdf]/30 hover:border-[#75bbdf]/50'
+    : isMulti && position.token === 'PILL'
     ? 'from-green-500/5 to-yellow-500/5 border-green-500/20 hover:border-green-400/40'
     : isMulti && position.token === 'MOTO'
       ? 'from-brand-500/5 to-yellow-500/5 border-brand-500/20 hover:border-brand-400/40'
@@ -594,9 +737,12 @@ export function PositionCard({ position, index = 0 }: Props) {
             : 'from-green-500/5 to-green-500/0 border-green-500/20 hover:border-green-500/40';
 
   // Get link for non-multi cards
-  const simpleLink = isStake ? 'https://motoswap.org/stake'
+  const simpleLink = isMchad ? 'https://motochad.com'
+    : isStake ? 'https://motoswap.org/stake'
     : isLP ? 'https://motoswap.org/pool'
     : 'https://motoswap.org';
+
+  const simpleLinkLabel = isMchad ? 'View on MotoCHAD' : 'View on MotoSwap';
 
   return (
     <motion.div
@@ -605,10 +751,11 @@ export function PositionCard({ position, index = 0 }: Props) {
       transition={{ delay: index * 0.08 }}
       className={`glass rounded-2xl p-5 bg-gradient-to-br ${borderClass} border transition-all duration-300 hover:-translate-y-0.5`}
     >
-      {isMulti  ? <MultiViewCard pos={position} /> :
-       isStake  ? <StakeCard     pos={position} /> :
-       isLP     ? <LPCard        pos={position} /> :
-                  <FarmCard      pos={position} />}
+      {isMchad   ? <MchadCard     pos={position} /> :
+       isMulti   ? <MultiViewCard pos={position} /> :
+       isStake   ? <StakeCard     pos={position} /> :
+       isLP      ? <LPCard        pos={position} /> :
+                   <FarmCard      pos={position} />}
 
       {/* Non-multi cards get their own link footer */}
       {!isMulti && (
@@ -619,7 +766,7 @@ export function PositionCard({ position, index = 0 }: Props) {
             rel="noreferrer"
             className="flex items-center gap-1 text-xs text-gray-600 hover:text-brand-400 transition-colors"
           >
-            View on MotoSwap <ExternalLink className="w-3 h-3" />
+            {simpleLinkLabel} <ExternalLink className="w-3 h-3" />
           </a>
         </div>
       )}

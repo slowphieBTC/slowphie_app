@@ -17,10 +17,12 @@ export interface StakingReward {
 }
 
 export interface LPUnderlying {
-  token0Symbol: string;
-  token1Symbol: string;
-  token0Amount: number;
-  token1Amount: number;
+  token0Symbol:  string;
+  token1Symbol:  string;
+  token0Amount:  number;
+  token1Amount:  number;
+  token0Address?: string;  // contract address of token0
+  token1Address?: string;  // contract address of token1
 }
 
 export interface Position {
@@ -45,6 +47,29 @@ export interface Position {
   stakingRewards?: StakingReward[];  // multi-token staking rewards
   lpUnderlying?: LPUnderlying;       // underlying token amounts for LP wallet balance
   lpUnderlyingStaked?: LPUnderlying; // underlying token amounts for LP staked amount
+  mchadStaking?: MchadStakingData;   // MCHAD custom staking card
+  mchadLpStaking?: MchadStakingPos;  // MCHAD LP_STAKING tab on MCHAD/MOTO LP card
+}
+
+// ── MCHAD Custom Staking Protocol ──────────────────────────────────
+export interface MchadStakingPos {
+  contract:                  string;  // 'MCHAD_STAKING' | 'LP_STAKING'
+  contractAddress:           string;
+  stakedSymbol:              string;
+  stakedFormatted:           string;
+  stakedWeightedFormatted:   string;
+  unclaimedRewardsFormatted: string;
+  rewardSymbol:              string;
+  multiplierFormatted:       string;
+  lockDuration:              number;  // seconds
+  unlockTimestamp:           number;  // unix
+}
+
+export interface MchadStakingData {
+  positions:  MchadStakingPos[];
+  mchadBal:   string;  // MCHAD wallet balance formatted
+  mchadMotoBal: string; // MCHAD/MOTO LP balance formatted
+  mchadPillBal: string; // MCHAD/PILL LP balance formatted
 }
 
 export type StakePosition = Position & { type: 'stake' };
