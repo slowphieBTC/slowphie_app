@@ -9,7 +9,8 @@ import {
   formatTokenAmount,
   CONTRACTS,
 } from '../api/opnet';
-import { fetchTrackedTokens, fetchFarms, fetchMchadPosition } from '../api/slowphie';
+import { fetchTrackedTokens, fetchFarms } from '../api/slowphie';
+import { fetchMchadPositionClientSide } from '../api/mchadClient';
 import type { Farm } from '../api/slowphie';
 import { useAppStore } from '../store';
 import type { Position, FarmInfo } from '../types';
@@ -226,7 +227,7 @@ export function usePositions(addresses: string[]) {
         const [staking, btcWalletBalance, mchadData, ...farmResults] = await Promise.all([
           getStakingInfo(opnetAddr),
           getBTCNativeBalance(rawAddr),
-          fetchMchadPosition(rawAddr),
+          fetchMchadPositionClientSide(rawAddr),
           ...farms.map(farm => getAllDynamicFarmPositions(farm.address, farm.pools, opnetAddr)),
         ]);
 

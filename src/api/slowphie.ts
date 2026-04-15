@@ -112,12 +112,3 @@ export interface MchadWalletResponse {
   };
 }
 
-export async function fetchMchadPosition(btcAddress: string): Promise<MchadWalletResponse | null> {
-  try {
-    const res = await fetchTimeout(`${BASE_URL}/custom/mchad/wallet/${encodeURIComponent(btcAddress)}`);
-    if (!res.ok) return null;
-    return res.json() as Promise<MchadWalletResponse>;
-  } catch {
-    return null;
-  }
-}
