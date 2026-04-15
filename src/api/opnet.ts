@@ -1,28 +1,57 @@
 import axios from 'axios';
+import type { LPUnderlying } from '../types';
 
 const OPNET_RPC = 'https://mainnet.opnet.org/api/v1/json-rpc';
 
 // ── Contract addresses ────────────────────────────────────────────────
 export const CONTRACTS = {
-  STAKING:      '0xab99e31ebb30b8e596d5be1bd1e501ee8e7b7e5ec9dc7ee880f4937b0c929dcb',
-  PILL_FARM:    '0x3fb33dc12672aba975babfa8c0b400a3c86461d364861a7de50d20672cb1b80f',
-  MOTO_TOKEN:   '0xc3d18f9d7db3f26ed107a9f4a4c65eef14c1ca73db5684ef9789fdd4fbb3ea9a',
-  PILL_TOKEN:   '0xc6c3674b1c6c4ca3d4b3652d1d6fc2b197f45c4ad1eda90d37952472719d1c05',
-  MOTO_PILL_LP: '0xf8bf27905acd0d440048d78c1512b468d3139495f6e72c14733813a065302031',
-  SAT_TOKEN:    '0xb2d6af9d8e923ad794edaaf04bf0d3a4ac11b4302e009801f75ea7cd86de7035',
-  SAT_FARM:     '0x22b1217f899b93db082d0634c167a744809d02b2a9ac46cd965706380350e0b1',
-  SWAP_TOKEN:   '0xb4be035ad7e09d72b57ba5e1a28b70ec281991dab106833bd1a9e7642bb1f599',
-  SWAP_FARM:    '0x96a7f30400afc8b56650c81b06634c1e7901917e45f16e3c03e6b3b658ce72f9',
-  LP_SWMOTO:    '0x3146a9a820c3fc9b4df2ce52314e39ce39fa8bd3a1bb02ee747c20b642d5bf13',
+  // ── Farm contracts ────────────────────────────────────────────────────
+  STAKING:       '0xab99e31ebb30b8e596d5be1bd1e501ee8e7b7e5ec9dc7ee880f4937b0c929dcb',
+  PILL_FARM:     '0x3fb33dc12672aba975babfa8c0b400a3c86461d364861a7de50d20672cb1b80f',
+  SAT_FARM:      '0x22b1217f899b93db082d0634c167a744809d02b2a9ac46cd965706380350e0b1',
+  SWAP_FARM:     '0x96a7f30400afc8b56650c81b06634c1e7901917e45f16e3c03e6b3b658ce72f9',
+  // ── Core tokens ───────────────────────────────────────────────────────
+  MOTO_TOKEN:    '0xc3d18f9d7db3f26ed107a9f4a4c65eef14c1ca73db5684ef9789fdd4fbb3ea9a',
+  PILL_TOKEN:    '0xc6c3674b1c6c4ca3d4b3652d1d6fc2b197f45c4ad1eda90d37952472719d1c05',
+  SAT_TOKEN:     '0xb2d6af9d8e923ad794edaaf04bf0d3a4ac11b4302e009801f75ea7cd86de7035',
+  SWAP_TOKEN:    '0xb4be035ad7e09d72b57ba5e1a28b70ec281991dab106833bd1a9e7642bb1f599',
+  BLUE_TOKEN:    '0x9b344461172333d558047b30dafa5608295e4b413423ba4092a638b0003c5fa7',
+  PEPE_TOKEN:    '0x6e48cb5d68ecf9802f7d3b4d44e51db1d513190960dc3b2b1d6d24196d1c9005',
+  UNGA_TOKEN:    '0x456de31b4d8d9d1a4f317bc8aaf1ac3111459d88447e5b1d4ebae382e6e05956',
+  ICHI_TOKEN:    '0x88336038fa7973c765f1c360743d986e44f8edc1c5a792b6ce67855b8f402835',
+  MCHAD_TOKEN:   '0x8d325ab5516f23dce15d650f58a160a2c1c2515bda3f0212ca0b8b2b5705b4ab',
+  // ── LP tokens (on-chain addresses verified from PILL Farm poolInfo()) ──
+  MOTO_PILL_LP:  '0xf8bf27905acd0d440048d78c1512b468d3139495f6e72c14733813a065302031', // pool 2
+  LP_SWMOTO:     '0x3146a9a820c3fc9b4df2ce52314e39ce39fa8bd3a1bb02ee747c20b642d5bf13', // SWAP Farm pool 4
+  LP_PEPEMOTO:   '0x1437c9285e5f29f2c23fa11d9daf9c3bc8b02fe8d38a20ad789f15ba330f28c6', // pool 6
+  LP_UNGAPILL:   '0x0a6bcb2b430010a69157dac3bed51f349fa39f6cbec851abd81b6c66ad4daaf7', // pool 7
+  LP_BLUEPILL:   '0x10fed89819f45a6f87d0fe066452d47487c2a9111ebf2078084f0a6810094fe4', // pool 8
+  LP_BLUEMOTO:   '0x54b66de9fbd04e6ddfae150e6f80436e6d979fc29890769100a4e875d5ff5282', // pool 9
+  LP_PEPEPILL:   '0xa39a26670c3fb49d3b4cd6780205cd6f91026bf2407a0630da099af0b910e6d5', // pool 10
+  LP_UNGAMOTO:   '0xe345b1d5b7ac87a0ee9772068a5f2ce2a14619cdacb80bfc668a6f0778700013', // pool 11
+  LP_ICHIPILL:   '0xaf86861ae3de669ef880a4a13e4e753d10130b3a0e7a44af2f15990d961ccc13', // pool 14
+  LP_ICHIMOTO:   '0xa029d5004a176b7fc2927bf8b75f562f217b7e89ee231f1ed282dfb2453f3e88', // pool 15
 } as const;
 
-// ── Farm pool definitions (from getAllPools() WASM probe) ─────────────
-// Pool 0 = BTC native, Pool 1 = PILL, Pool 2 = MOTO/PILL LP, Pool 3 = MOTO
+// ── PILL Farm pool definitions (verified on-chain via poolInfo() sel 0x44b300d3) ─
+// 16 active pools (0-15); pools 16+ return zero address.
 export const FARM_POOLS = [
-  { id: 0, name: 'BTC Farm (Native Stake)', symbol: 'BTC',      tokenContract: null,                   decimals: 8  },
-  { id: 1, name: 'PILL Farm',               symbol: 'PILL',     tokenContract: CONTRACTS.PILL_TOKEN,   decimals: 18 },
-  { id: 2, name: 'MOTO/PILL LP Farm',       symbol: 'MOTO-PILL',tokenContract: CONTRACTS.MOTO_PILL_LP, decimals: 18 },
-  { id: 3, name: 'MOTO Farm',               symbol: 'MOTO',     tokenContract: CONTRACTS.MOTO_TOKEN,   decimals: 18 },
+  { id:  0, name: 'BTC Farm (Native Stake)', symbol: 'BTC',       tokenContract: null,                    decimals: 8  },
+  { id:  1, name: 'PILL Farm',               symbol: 'PILL',       tokenContract: CONTRACTS.PILL_TOKEN,    decimals: 18 },
+  { id:  2, name: 'MOTO/PILL LP Farm',       symbol: 'MOTO/PILL',  tokenContract: CONTRACTS.MOTO_PILL_LP,  decimals: 18 },
+  { id:  3, name: 'MOTO Farm',               symbol: 'MOTO',       tokenContract: CONTRACTS.MOTO_TOKEN,    decimals: 18 },
+  { id:  4, name: 'BLUE Farm',               symbol: 'BLUE',       tokenContract: CONTRACTS.BLUE_TOKEN,    decimals: 18 },
+  { id:  5, name: 'PEPE Farm',               symbol: 'PEPE',       tokenContract: CONTRACTS.PEPE_TOKEN,    decimals: 18 },
+  { id:  6, name: 'PEPE/MOTO LP Farm',       symbol: 'PEPE/MOTO',  tokenContract: CONTRACTS.LP_PEPEMOTO,   decimals: 18 },
+  { id:  7, name: 'UNGA/PILL LP Farm',       symbol: 'UNGA/PILL',  tokenContract: CONTRACTS.LP_UNGAPILL,   decimals: 18 },
+  { id:  8, name: 'BLUE/PILL LP Farm',       symbol: 'BLUE/PILL',  tokenContract: CONTRACTS.LP_BLUEPILL,   decimals: 18 },
+  { id:  9, name: 'BLUE/MOTO LP Farm',       symbol: 'BLUE/MOTO',  tokenContract: CONTRACTS.LP_BLUEMOTO,   decimals: 18 },
+  { id: 10, name: 'PEPE/PILL LP Farm',       symbol: 'PEPE/PILL',  tokenContract: CONTRACTS.LP_PEPEPILL,   decimals: 18 },
+  { id: 11, name: 'UNGA/MOTO LP Farm',       symbol: 'UNGA/MOTO',  tokenContract: CONTRACTS.LP_UNGAMOTO,   decimals: 18 },
+  { id: 12, name: 'UNGA Farm',               symbol: 'UNGA',       tokenContract: CONTRACTS.UNGA_TOKEN,    decimals: 18 },
+  { id: 13, name: 'ICHI Farm',               symbol: 'ICHI',       tokenContract: CONTRACTS.ICHI_TOKEN,    decimals: 18 },
+  { id: 14, name: 'ICHI/PILL LP Farm',       symbol: 'ICHI/PILL',  tokenContract: CONTRACTS.LP_ICHIPILL,   decimals: 18 },
+  { id: 15, name: 'ICHI/MOTO LP Farm',       symbol: 'ICHI/MOTO',  tokenContract: CONTRACTS.LP_ICHIMOTO,   decimals: 18 },
 ] as const;
 
 // ── SAT Farm (Satoshi's Farm) pool definitions ────────────────────────
@@ -229,7 +258,7 @@ async function getBTCStakedAmount(farmContract: string, userAddress: string): Pr
       try {
         const res = await axios.post(OPNET_RPC, {
           jsonrpc: '2.0', id: rpcId++,
-          method: 'btc_getTransaction',
+          method: 'btc_getTransactionByHash',
           params: [txHash],
         });
 
@@ -272,6 +301,26 @@ async function getBTCStakedAmount(farmContract: string, userAddress: string): Pr
 
 export async function getTokenBalance(tokenContract: string, userAddress: string): Promise<bigint> {
   return contractCallUint256(tokenContract, SEL.BALANCE_OF, encodeAddress(userAddress));
+}
+
+// ── BTC Native balance ─────────────────────────────────────────────────
+export async function getBTCNativeBalance(address: string): Promise<number> {
+  try {
+    const res = await axios.post(OPNET_RPC, {
+      jsonrpc: '2.0', id: rpcId++,
+      method: 'btc_getBalance',
+      params: [{ address, filterOrdinals: true }],
+    });
+    const result = res.data?.result;
+    if (!result) return 0;
+    // Result may be { confirmed: satoshis, unconfirmed: satoshis } or just a number
+    const satoshis = typeof result === 'object'
+      ? BigInt(result.confirmed ?? result.total ?? result.balance ?? 0)
+      : BigInt(result ?? 0);
+    return Number(satoshis) / 1e8;
+  } catch {
+    return 0;
+  }
 }
 
 // ── Main Staking: stake MOTO, earn multiple OP-20 rewards ─────────────
@@ -472,6 +521,53 @@ export async function getAllSwapFarmPositions(userAddress: string): Promise<Swap
   return Promise.all(SWAP_FARM_POOLS.map(p => getSwapFarmUserInfo(p.id, userAddress)));
 }
 
+// ── Generic dynamic farm position fetcher ────────────────────────────
+// Accepts any farm contract + pool list from the /farms server endpoint.
+// Replaces the three separate per-farm functions for new server-driven flow.
+export interface DynamicFarmPool {
+  poolId:        number;
+  tokenContract: string | null;
+  symbol:        string;
+  name:          string;
+  decimals:      number;
+  isLP:          boolean;
+  token0Symbol:  string | null;
+  token1Symbol:  string | null;
+}
+
+export async function getAllDynamicFarmPositions(
+  farmAddress: string,
+  pools: DynamicFarmPool[],
+  userAddress: string,
+): Promise<FarmUserInfo[]> {
+  return Promise.all(
+    pools.map(async (pool) => {
+      const compactArgs = encodeUint32(pool.poolId) + encodeAddress(userAddress);
+      const [rawInfo, pending] = await Promise.all([
+        contractCall(farmAddress, SEL.CHEF_USER_INFO, compactArgs),
+        contractCallUint256(farmAddress, SEL.CHEF_PENDING_REWARD, compactArgs),
+      ]);
+      let staked = 0n;
+      if (pool.poolId === 0) {
+        staked = await getBTCStakedAmount(farmAddress, userAddress);
+      } else if (rawInfo) {
+        const bytes = base64ToBytes(rawInfo);
+        staked = bytesToBigInt(bytes, 0, 32);
+      }
+      return {
+        poolId:        pool.poolId,
+        poolName:      pool.name,
+        symbol:        pool.symbol,
+        decimals:      pool.decimals,
+        tokenContract: pool.tokenContract,
+        staked,
+        pendingReward: pending,
+      };
+    })
+  );
+}
+
+
 // ── Format helper ─────────────────────────────────────────────────────
 export function formatTokenAmount(raw: bigint, decimals: number): number {
   if (raw === 0n) return 0;
@@ -488,13 +584,6 @@ export function formatTokenAmount(raw: bigint, decimals: number): number {
 }
 
 // ── LP Pool: underlying token amounts for a user's LP position ────────
-export interface LPUnderlying {
-  token0Symbol: string;
-  token1Symbol: string;
-  token0Amount: number;
-  token1Amount: number;
-}
-
 export async function getLPUnderlying(
   poolContract: string,
   token0Symbol: string,
@@ -502,8 +591,10 @@ export async function getLPUnderlying(
   token1Symbol: string,
   token1Decimals: number,
   userLPBalance: bigint,
+  token0Address?: string,
+  token1Address?: string,
 ): Promise<LPUnderlying> {
-  const zero: LPUnderlying = { token0Symbol, token1Symbol, token0Amount: 0, token1Amount: 0 };
+  const zero: LPUnderlying = { token0Symbol, token1Symbol, token0Amount: 0, token1Amount: 0, token0Address, token1Address };
   if (userLPBalance === 0n) return zero;
   try {
     const [reservesRaw, totalSupplyRaw] = await Promise.all([
@@ -511,13 +602,12 @@ export async function getLPUnderlying(
       contractCallUint256(poolContract, SEL.TOTAL_SUPPLY),
     ]);
     if (!reservesRaw || totalSupplyRaw === 0n) return zero;
-    // getReserves: reserve0 (uint256 = 32B) + reserve1 (uint256 = 32B) + timestamp
     const bytes = base64ToBytes(reservesRaw);
     const reserve0 = bytesToBigInt(bytes, 0, 32);
     const reserve1 = bytesToBigInt(bytes, 32, 32);
     const token0Amount = formatTokenAmount((userLPBalance * reserve0) / totalSupplyRaw, token0Decimals);
     const token1Amount = formatTokenAmount((userLPBalance * reserve1) / totalSupplyRaw, token1Decimals);
-    return { token0Symbol, token1Symbol, token0Amount, token1Amount };
+    return { token0Symbol, token1Symbol, token0Amount, token1Amount, token0Address, token1Address };
   } catch (e) {
     return zero;
   }
