@@ -365,6 +365,7 @@ function MultiViewCard({ pos }: { pos: Position }) {
   // Current link
   const link = activeFarm ? activeFarm.farmLink
     : pos.type === 'stake' ? 'https://motoswap.org/stake'
+    : view === 'wallet' ? `https://motoswap.org/token/${pos.contractAddress}`
     : 'https://motoswap.org';
 
   return (
@@ -541,7 +542,7 @@ function LPUnderlyingGrid({ und }: { und: LPUnderlying }) {
       <div className="text-xs text-gray-500 mb-2">Pool Composition</div>
       <div className="grid grid-cols-2 gap-2">
         {tokens.map((t) => (
-          <div key={t.symbol} className="bg-dark-700/50 rounded-xl p-3">
+          <div key={(t as any).address || t.symbol} className="bg-dark-700/50 rounded-xl p-3">
             <div className="flex items-center gap-1.5 mb-1">
               {ICONS[t.symbol] ? (
                 <img src={ICONS[t.symbol]} alt={t.symbol} className="w-4 h-4 rounded" />
@@ -708,6 +709,18 @@ function LPCard({ pos }: { pos: Position }) {
       )}
 
       <AddressRow addr={pos.contractAddress} />
+
+      {/* Tab-aware link footer */}
+      <div className="pt-2 border-t border-dark-600/50">
+        <a
+          href={view === 'mchad' ? 'https://motochad.com' : 'https://motoswap.org/pool'}
+          target="_blank"
+          rel="noreferrer"
+          className="flex items-center gap-1 text-xs text-gray-600 hover:text-brand-400 transition-colors"
+        >
+          {view === 'mchad' ? 'View on MotoCHAD' : 'View on MotoSwap'} <ExternalLink className="w-3 h-3" />
+        </a>
+      </div>
     </div>
   );
 }
@@ -740,7 +753,7 @@ export function PositionCard({ position, index = 0 }: Props) {
   const simpleLink = isMchad ? 'https://motochad.com'
     : isStake ? 'https://motoswap.org/stake'
     : isLP ? 'https://motoswap.org/pool'
-    : 'https://motoswap.org';
+    : `https://motoswap.org/token/${position.contractAddress}`;
 
   const simpleLinkLabel = isMchad ? 'View on MotoCHAD' : 'View on MotoSwap';
 
@@ -758,7 +771,7 @@ export function PositionCard({ position, index = 0 }: Props) {
                    <FarmCard      pos={position} />}
 
       {/* Non-multi cards get their own link footer */}
-      {!isMulti && (
+      {!isMulti && !isLP && (
         <div className="mt-3 pt-3 border-t border-dark-600/50">
           <a
             href={simpleLink}

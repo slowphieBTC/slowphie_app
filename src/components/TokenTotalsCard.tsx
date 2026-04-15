@@ -368,8 +368,8 @@ export function TokenTotalsCard({ positions }: Props) {
         >
           {totals.map(t =>
             detailMode
-              ? <DetailCard key={t.symbol} t={t} walletLabel={walletLabel} />
-              : <SummaryCard key={t.symbol} t={t} />
+              ? <DetailCard key={t.tokenContract || t.symbol} t={t} walletLabel={walletLabel} />
+              : <SummaryCard key={t.tokenContract || t.symbol} t={t} />
           )}
         </motion.div>
       </AnimatePresence>

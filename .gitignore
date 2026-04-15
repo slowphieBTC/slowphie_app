@@ -11,3 +11,4 @@ dist/
 
 # Agent Zero project config
 .a0proj/
+.vercel
