@@ -1,0 +1,387 @@
+{
+  "common": {
+    "loading": "Loading…",
+    "error": "Error",
+    "back": "Back",
+    "close": "Close",
+    "refresh": "Refresh",
+    "refreshing": "Refreshing…",
+    "copied": "Copied!",
+    "copy": "Copy full address",
+    "settings": "Settings",
+    "clear": "Clear",
+    "custom": "CUSTOM",
+    "live": "Live data",
+    "connecting": "Connecting…",
+    "noData": "—",
+    "seeAlso": "See also:"
+  },
+  "nav": {
+    "home": "Home",
+    "tracks": "Tracks",
+    "minter": "Minter",
+    "school": "School",
+    "about": "About",
+    "settings": "Settings",
+    "glossary": "Glossary →"
+  },
+  "home": {
+    "title": "Welcome to",
+    "subtitle": "Your OP_NET powered DeFi dashboard",
+    "about": "About",
+    "modules": {
+      "tracks": {
+        "title": "Tracks",
+        "label": "Tracks",
+        "description": "Multi-wallet DeFi tracker"
+      },
+      "minter": {
+        "title": "Minter",
+        "label": "Minter",
+        "description": "Early access to free OP-20 mints"
+      },
+      "school": {
+        "title": "School",
+        "label": "Learn",
+        "description": "Learn Bitcoin and OP_NET"
+      }
+    }
+  },
+  "tracks": {
+    "heroTitle": "Track your",
+    "heroGradient": "Positions",
+    "heroSubtitle": "Monitor all your MotoSwap staking, farming, and liquidity positions across multiple wallets in real time.",
+    "sectionTitle": "Tracks",
+    "addressCount_one": "{{count}} address",
+    "addressCount_other": "{{count}} addresses",
+    "positionCount_one": "{{count}} position detected",
+    "positionCount_other": "{{count}} positions detected",
+    "shownCount": "{{count}} shown",
+    "openSettings": "Open Settings",
+    "clearFilters": "Clear",
+    "filterClearTitle": "Clear filters",
+    "fetchingPositions": "Fetching on-chain positions…",
+    "failedToLoad": "Failed to load positions",
+    "noPositions": "No DeFi positions detected for this address",
+    "noPositionsHint": "Make sure the address has interacted with MotoSwap contracts",
+    "noAddressesTitle": "No addresses tracked",
+    "noAddressesDesc": "Add your Bitcoin taproot or OPNet addresses in Settings to start tracking your DeFi positions.",
+    "badges": {
+      "stake": "Stake",
+      "harvest": "Harvest",
+      "lp": "LP",
+      "token": "Token",
+      "custom": "Custom"
+    }
+  },
+  "minter": {
+    "heroTitle": "Mint on",
+    "heroGradient": "Bitcoin",
+    "heroSubtitle": "Connect your OP_WALLET and mint OP-20 tokens directly on Bitcoin's L1 smart contract platform.",
+    "sortBy": "Sort by",
+    "deployDate": "Deploy Date",
+    "mintsLeft": "Mints Left",
+    "ascending": "↑ ascending",
+    "descending": "↓ descending",
+    "oldestFirst": "· oldest first",
+    "newestFirst": "· newest first",
+    "fewestMintsFirst": "· fewest mints left first",
+    "mostMintsFirst": "· most mints left first",
+    "minted": "Minted",
+    "supply": "Supply:",
+    "max": "Max:",
+    "perMint": "Per Mint",
+    "yourBalance": "Your Balance",
+    "contract": "Contract",
+    "mintedSuccess": "Minted Successfully!",
+    "transactionId": "Transaction ID:",
+    "fees": "Fees: {{fees}} sats",
+    "mintAgain": "Mint again",
+    "mintFailed": "Mint Failed",
+    "tryAgain": "Try again",
+    "connectToMint": "🔗 Connect Wallet to Mint",
+    "mintToken": "{{icon}} Mint {{name}}",
+    "simulating": "Simulating…",
+    "signInWallet": "Sign in Wallet…",
+    "requiresExtension": "Requires OP_WALLET browser extension"
+  },
+  "school": {
+    "heroTitle": "Learn",
+    "heroGradient": "Bitcoin",
+    "heroSubtitle": "From Bitcoin's fundamental rules to quantum cryptography. 7 modules, real exercises, zero fluff.",
+    "statsModules": "Modules",
+    "statsQuestions": "Questions",
+    "statsTerms": "Terms",
+    "statsLevel": "Level",
+    "yourProgress": "Your Progress",
+    "modulesProgress": "{{done}}/7 modules",
+    "percentComplete": "{{pct}}% complete",
+    "courseModules": "Course Modules",
+    "legendCompleted": "Completed",
+    "legendAvailable": "Available",
+    "legendLocked": "Locked",
+    "moduleNotFound": "Module not found.",
+    "backToSchool": "← Back to School",
+    "allModules": "← All Modules",
+    "moduleCompleted": "✓ Completed",
+    "quizScore": "Quiz Score",
+    "practicalExercises": "Practical Exercises",
+    "moduleCompleteRetake": "Module complete! Retake to improve.",
+    "readyToTest": "Ready to test your knowledge?",
+    "questionsUnlock": "{{count}} questions · Score 50%+ to unlock next",
+    "retakeQuiz": "Retake Quiz",
+    "takeQuiz": "Take Quiz",
+    "moduleLockedBtn": "🔒 Module {{id}}",
+    "moduleNavPrev": "← Module {{id}}",
+    "moduleNavNext": "Module {{id}} →",
+    "breadcrumbModule": "Module {{id}}: {{title}}"
+  },
+  "glossary": {
+    "title": "Glossary",
+    "backToSchool": "← School",
+    "subtitle": "All key terms from the OPNet & Bitcoin DeFi course, defined in plain English.",
+    "searchPlaceholder": "Search 40+ Bitcoin DeFi terms...",
+    "showing": "Showing",
+    "of": "of",
+    "termsLabel": "terms",
+    "matching": "matching",
+    "clearBtn": "Clear",
+    "noTermsFound": "No terms found",
+    "tryDifferent": "Try different keywords.",
+    "termCount_one": "{{count}} term",
+    "termCount_other": "{{count}} terms"
+  },
+  "about": {
+    "heroTitle": "About",
+    "heroGradient": "Slowphie",
+    "heroSubtitle": "Slowphie is a Bitcoin DeFi companion app built on OP_NET — the only smart contract platform that runs natively on Bitcoin L1 without bridges or sidechains. Three modules, one mission: track, mint, and learn.",
+    "backToHome": "← Back to Home",
+    "liveData": "Live data",
+    "updatedAt": "Updated {{time}}",
+    "nextScan": "· Next scan {{time}}",
+    "statsTokens": "Tokens",
+    "statsLpPools": "LP Pools",
+    "statsFarms": "Farms",
+    "startHereTitle": "💡 Start here first",
+    "startHereBody": "Bitcoin DeFi is genuinely complex. Before staking, farming, or minting, take a few days to go through the modules. The technology rewards those who understand it — and punishes those who don't.",
+    "techSpecs": "Technical Specs",
+    "loading": "loading…",
+    "footerText": "Built on OPNet · Bitcoin Mainnet · No bridges · No custody",
+    "tracksBtn": "📊 Tracks",
+    "minterBtn": "🪙 Minter",
+    "schoolBtn": "🎓 School",
+    "openArrow": "Open →",
+    "sections": {
+      "tracks": {
+        "label": "Tracks",
+        "tagline": "Track your MotoSwap Positions",
+        "description": "Tracks gives you a real-time overview of all your MotoSwap DeFi positions across multiple Bitcoin wallets — without any login or custody.",
+        "features": {
+          "multiWallet": {
+            "title": "Multi-wallet tracking",
+            "desc": "Monitor staking, farming, and LP positions across all your addresses simultaneously."
+          },
+          "livePrice": {
+            "title": "Live BTC price & block data",
+            "desc": "Powered by BlockFeed WebSocket stream — prices and block height update in real time."
+          },
+          "aggregation": {
+            "title": "Complete position aggregation",
+            "desc": "MOTO staking, BTC native farms, LP pairs, token wallet balances, MCHAD custom staking — every position type in one unified view."
+          },
+          "mchad": {
+            "title": "MCHAD Custom LP Staking",
+            "desc": "Full visibility into MotoCHAD protocol positions: MCHAD staking, MCHAD/MOTO LP staking with time-lock multipliers, weighted amounts, and unclaimed MCHAD rewards."
+          },
+          "lpComposition": {
+            "title": "LP pool composition",
+            "desc": "For every LP position, see the exact underlying token amounts (e.g. MOTO + PILL) using live on-chain reserves — decimals resolved dynamically per token."
+          },
+          "tokenTotals": {
+            "title": "Token totals card",
+            "desc": "Aggregate token holdings across every tracked wallet for a complete portfolio snapshot."
+          },
+          "refresh": {
+            "title": "30s background refresh",
+            "desc": "Data refreshes silently every 30 seconds. Navigate away and come back — no reload needed."
+          }
+        },
+        "spec": {
+          "dataSource": "Data source",
+          "trackedTokens": "Tracked tokens",
+          "trackedLpPools": "Tracked LP pools",
+          "farmsTracked": "Farms tracked",
+          "supportedPositions": "Supported positions",
+          "customProtocol": "Custom protocol",
+          "cacheStrategy": "Cache strategy",
+          "custody": "Custody",
+          "lastServerScan": "Last server scan"
+        }
+      },
+      "minter": {
+        "label": "Minter",
+        "tagline": "Discover & Mint Hidden OP-20 Tokens",
+        "description": "Minter helps you find and mint free OP-20 tokens directly on Bitcoin's L1 smart contract platform. Some tokens are hard to discover on MotoSwap — Minter surfaces them for you.",
+        "features": {
+          "hiddenGem": {
+            "title": "Hidden gem detection",
+            "desc": "Some mintable tokens are not visible in MotoSwap's standard interface. Minter finds them."
+          },
+          "oneClick": {
+            "title": "One-click mint",
+            "desc": "Connect your OP_WALLET browser extension and mint with a single click per token."
+          },
+          "supplyBar": {
+            "title": "Supply progress bar",
+            "desc": "See total supply vs circulating supply before minting — know how scarce a token is."
+          },
+          "walletBalance": {
+            "title": "Wallet balance display",
+            "desc": "Your current holding for each token shown in real time after connecting."
+          },
+          "mintStatus": {
+            "title": "Mint status feedback",
+            "desc": "Clear transaction states: idle → pending → confirmed, with error handling."
+          }
+        },
+        "spec": {
+          "protocol": "Protocol",
+          "wallet": "Wallet",
+          "tokensAvailable": "Tokens available",
+          "platformFee": "Platform fee",
+          "settlement": "Settlement"
+        },
+        "feeNote": "A small platform fee of 1,000 sats is included in each mint transaction to support Slowphie infrastructure."
+      },
+      "school": {
+        "label": "School",
+        "tagline": "Learn Bitcoin & OPNet — Before You DeFi",
+        "description": "School is the essential first step before using Tracks or Minter. Bitcoin DeFi is technically complex — understanding the fundamentals protects your funds and sharpens your decisions.",
+        "features": {
+          "modules": {
+            "title": "7 progressive modules",
+            "desc": "From Bitcoin basics to quantum cryptography — each module unlocks after passing the previous quiz."
+          },
+          "quiz": {
+            "title": "35 quiz questions",
+            "desc": "Real multiple-choice questions with explanations. Score 50%+ to unlock the next module."
+          },
+          "glossary": {
+            "title": "40+ glossary terms",
+            "desc": "Searchable glossary of all Bitcoin DeFi terms, defined in plain English."
+          },
+          "exercises": {
+            "title": "Practical exercises",
+            "desc": "Each module includes hands-on exercises with auto-saving answer fields, stored locally."
+          },
+          "progress": {
+            "title": "Progress saved locally",
+            "desc": "Quiz scores and exercise answers persist in your browser — continue across multiple sessions."
+          }
+        },
+        "spec": {
+          "modules": "Modules",
+          "topics": "Topics",
+          "quizThreshold": "Quiz threshold",
+          "storage": "Storage",
+          "estimatedTime": "Estimated time"
+        }
+      }
+    }
+  },
+  "appbar": {
+    "brand": "Slowphie",
+    "beta": "Beta",
+    "logoAlt": "Slowphie Logo"
+  },
+  "positions": {
+    "motoswapStake": "MotoSwap Stake",
+    "badge": {
+      "stake": "STAKE",
+      "farm": "FARM",
+      "token": "TOKEN",
+      "lp": "LP",
+      "custom": "CUSTOM"
+    },
+    "staked": "Staked",
+    "pendingRewards": "Pending Rewards",
+    "noPendingRewards": "No pending rewards",
+    "walletBalance": "Wallet Balance",
+    "noFarmPositions": "No farm positions detected",
+    "notStakedAnyFarm": "Not staked in any farm — switch tabs to see details",
+    "alreadyStaked": "Already Staked",
+    "pendingHarvest": "Pending Harvest",
+    "noTokenStaked": "No {{token}} staked",
+    "depositToEarn": "Deposit {{token}} to earn {{rewardToken}} rewards",
+    "farmPoolInfo": "{{farmName}} · Pool #{{poolId}}",
+    "poolComposition": "Pool Composition",
+    "mchadStakingTitle": "MCHAD Staking",
+    "motochadCom": "motochad.com",
+    "weighted": "Weighted: {{amount}}",
+    "unlocks": "Unlocks: {{date}}",
+    "lpTokens": "LP Tokens",
+    "liquidityPosition": "Liquidity Position",
+    "wallet": "Wallet",
+    "mchadLp": "MCHAD LP",
+    "viewOnMotoSwap": "View on MotoSwap",
+    "viewOnMotoCHAD": "View on MotoCHAD",
+    "poolId": "Pool #{{id}}",
+    "lockDays": "{{days}}d lock"
+  },
+  "totals": {
+    "aggregateHoldings": "Aggregate Token Holdings",
+    "summary": "Summary",
+    "detail": "Detail",
+    "switchToSummary": "Switch to summary view",
+    "switchToDetail": "Switch to detail view",
+    "badges": {
+      "wallet": "Wallet",
+      "staked": "Staked",
+      "harvest": "Harvest",
+      "lpPool": "LP Pool"
+    },
+    "walletCount_one": "{{count}} wallet",
+    "walletCount_other": "{{count}} wallets"
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitle": "Manage your tracked addresses",
+    "labelField": "Label (optional)",
+    "labelPlaceholder": "e.g. My Main Wallet",
+    "addressField": "Address",
+    "addressPlaceholder": "bc1p... or 0x...",
+    "addBtn": "Add",
+    "invalidAddress": "Invalid address. Use BTC taproot (bc1p...) or OPNet (0x + 64 hex).",
+    "alreadyAdded": "Address already added.",
+    "noAddressesYet": "No addresses added yet",
+    "storedLocally": "Addresses are stored locally in your browser only",
+    "myWallet": "My Wallet"
+  },
+  "wallet": {
+    "connecting": "Connecting…",
+    "disconnect": "Disconnect",
+    "connectWallet": "Connect Wallet",
+    "requiresExtension": "Requires OP_WALLET browser extension"
+  },
+  "statsbar": {
+    "live": "Live",
+    "connecting": "Connecting…",
+    "block": "Block",
+    "network": "OPNet · Bitcoin Mainnet",
+    "btcLabel": "BTC"
+  },
+  "language": {
+    "en": "EN",
+    "fr": "FR",
+    "zh": "中",
+    "es": "ES"
+  },
+  "exercise": {
+    "label": "✏️ Your Notes & Exercise Work",
+    "statusEmpty": "Start writing...",
+    "statusSaving": "Auto-saving...",
+    "statusSaved": "✓ Saved",
+    "placeholder": "Write your answers, thoughts, or notes here. Auto-saved to your browser.",
+    "footer": "{{count}} characters • auto-saved locally"
+  }
+}

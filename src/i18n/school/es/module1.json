@@ -1,0 +1,67 @@
+{
+  "card": {
+    "title": "Fundamentos de Bitcoin DeFi",
+    "subtitle": "¿Qué es? ¿Por qué importa?",
+    "description": "Aprende las reglas fundamentales de Bitcoin que hacen del DeFi algo a la vez difícil y poderoso. Domina el modelo UTXO, las claves privadas y el principio verificar-sin-custodia.",
+    "difficulty": "Principiante",
+    "keyTopics": [
+      "Modelo UTXO",
+      "Requisito de Clave Privada",
+      "Problema ACS",
+      "Verificar-Sin-Custodia"
+    ]
+  },
+  "quiz": [
+    {
+      "question": "¿Qué significa UTXO?",
+      "options": [
+        "Unified Transaction eXchange Output",
+        "Unspent Transaction Output",
+        "Universal Token Exchange Operation",
+        "Unstaked Token eXchange Output"
+      ],
+      "explanation": "UTXO significa Unspent Transaction Output (Salida de Transacción No Gastada): la unidad fundamental de la contabilidad de Bitcoin. Como una moneda digital, solo puede gastarse firmando con la clave privada correcta."
+    },
+    {
+      "question": "¿Por qué un contrato inteligente de Bitcoin NO puede mantener BTC en un pool?",
+      "options": [
+        "Bitcoin es demasiado lento para los contratos inteligentes",
+        "Los contratos no tienen claves privadas para firmar transacciones de gasto",
+        "Las comisiones serían demasiado altas",
+        "Requiere una sidechain para funcionar"
+      ],
+      "explanation": "Los UTXO de Bitcoin requieren una firma de clave privada para ser gastados. Los contratos inteligentes no tienen clave privada, por lo que no pueden autorizar el gasto. Cualquier BTC en poder de un script necesita un custodio con la clave — o se convierte en una vulnerabilidad ACS."
+    },
+    {
+      "question": "ACS significa:",
+      "options": [
+        "Advanced Contract Security",
+        "Anyone Can Spend",
+        "Automated Consensus System",
+        "Asset Custody Solution"
+      ],
+      "explanation": "ACS significa Anyone Can Spend (Cualquiera Puede Gastar). Un UTXO de Bitcoin sin requisito de clave privada: cualquiera que cumpla las condiciones del script puede vaciarlo. Por eso los puentes sin confianza en Bitcoin son arquitectónicamente imposibles."
+    },
+    {
+      "question": "¿Qué significa 'verificar-sin-custodia'?",
+      "options": [
+        "El contrato verifica la identidad antes de almacenar fondos",
+        "Los contratos verifican que los pagos ocurrieron pero nunca custodian el BTC",
+        "Los usuarios deben verificar los retiros manualmente",
+        "Un proceso KYC para DeFi"
+      ],
+      "explanation": "Verificar-sin-custodia significa que el BTC se mueve directamente entre usuarios P2P, y el contrato inteligente solo verifica que el pago ocurrió. El contrato es un árbitro, no una bóveda — nunca toca el dinero."
+    },
+    {
+      "question": "¿Por qué los tiempos de bloque de Bitcoin NO pueden diseñarse para ser instantáneos?",
+      "options": [
+        "El hardware de minería es demasiado lento",
+        "Internet es demasiado lenta para ello",
+        "Bitcoin liquida en cadena en bloques — física, no ingeniería",
+        "Requiere un hard fork primero"
+      ],
+      "explanation": "Los bloques de Bitcoin toman ~10 minutos por diseño del consenso distribuido de prueba de trabajo. Si algo afirma una liquidación instantánea y sin confianza de BTC, alguien está custodiando ese BTC."
+    }
+  ],
+  "content": "# MÓDULO 01: Fundamentos de Bitcoin DeFi\n\n> **Etapa:** Fundamentos — ¿Qué es? ¿Por qué importa?\n\n---\n\n## 📌 Objetivo de Aprendizaje\n\n> Al finalizar este módulo, los estudiantes podrán **explicar las reglas fundamentales de Bitcoin** que lo diferencian de cualquier otra blockchain, y **describir por qué esas reglas hacen que el DeFi en Bitcoin sea a la vez difícil y poderoso**.\n\n---\n\n## 📚 Conceptos Clave\n\n- **Modelo UTXO** — Bitcoin rastrea el dinero como salidas de transacciones no gastadas, no como saldos de cuenta\n- **Requisito de clave privada** — en Bitcoin, gastar cualquier moneda requiere una clave privada; sin excepciones\n- **Tiempo de bloque** — Bitcoin confirma transacciones aproximadamente cada 10 minutos\n- **Los contratos no pueden custodiar BTC** — los contratos inteligentes en Bitcoin no pueden custodiar, retener ni interceptar BTC\n- **Verificar-sin-custodia** — la filosofía de diseño que trabaja *con* las reglas de Bitcoin en lugar de en su contra\n\n---\n\n## 🧠 Contenido Principal\n\n### Bitcoin Tiene Tres Reglas Irrompibles\n\nAntes de entender el DeFi en Bitcoin, debes comprender qué es Bitcoin en su núcleo. Bitcoin tiene reglas que ningún proyecto, ningún desarrollador ni ningún marketing inteligente puede cambiar.\n\n**Regla 1: Para gastar una moneda, necesitas una clave privada.**\n\nUn UTXO de Bitcoin (Unspent Transaction Output) — piénsalo como una moneda digital — solo puede moverse si firmas la transacción con la clave privada correcta. Sin clave privada, no hay gasto. Esta no es una limitación que los ingenieros olvidaron corregir. Es el modelo de seguridad completo de Bitcoin.\n\nEsta regla tiene una consecuencia enorme: **un contrato inteligente no puede mantener BTC en un pool.** Un contrato no tiene clave privada. Es solo código. Para mantener BTC en un pool, alguien (o algo) necesita poder gastarlo. Eso requiere una clave. Si un contrato tiene BTC, entonces alguien con esa clave puede tomarlo. Ese alguien es un custodio.\n\n**Regla 2: Los bloques toman aproximadamente 10 minutos.**\n\nBitcoin liquida en bloques. Un bloque ≈ 10 minutos. Esto no es algo que pueda eliminarse mediante ingeniería. El BTC real moviéndose en cadena significa esperar un bloque. \"Liquidación instantánea de Bitcoin\" sin un custodio es físicamente imposible, por la misma razón que no puedes viajar más rápido que la luz.\n\n**Regla 3: El modelo UTXO oculta las claves públicas (hasta que gastas).**\n\nCuando se diseñó Bitcoin, Satoshi Nakamoto hizo una elección interesante: las direcciones no muestran directamente tu clave pública. Muestran un *hash* de tu clave pública. Tu clave pública real solo se revela cuando *gastas* desde esa dirección. Esta distinción se vuelve crítica en el Módulo 05 cuando hablemos de computación cuántica.\n\n---\n\n### Por Qué Estas Reglas Eliminan la Mayoría de las Ideas de \"Bitcoin DeFi\"\n\nEl DeFi tradicional (estilo Ethereum) funciona así:\n1. Los usuarios depositan tokens en un pool de contratos inteligentes\n2. El contrato retiene esos tokens y los gestiona\n3. El contrato puede enviar tokens a cualquiera según su lógica\n\nEsto funciona en Ethereum porque los contratos de Ethereum *pueden* retener tokens. Pero **¿pueden retener ETH?** Sí — y es también por eso que los puentes y bóvedas de Ethereum se vacían regularmente.\n\nEn Bitcoin, si quieres que un contrato \"retenga BTC\", inmediatamente te enfrentas al problema de la clave:\n- O el UTXO tiene una clave privada = alguien lo está custodiando = centralizado\n- O el UTXO no tiene requisito de clave privada = Anyone Can Spend = explotable\n\nNo existe una tercera opción. Esto no es un error en Bitcoin. Es una característica que obliga a los diseñadores de DeFi a pensar de manera diferente.\n\n---\n\n### La Solución: Verificar, No Custodiar\n\nLa respuesta de OPNet a este problema es elegante: **no retener el BTC en absoluto.**\n\nEn lugar de diseñar un sistema donde un contrato retiene BTC y lo distribuye, diseña un sistema donde:\n- El BTC se mueve **directamente** del comprador al vendedor\n- El contrato solo **observa** para confirmar que el BTC se movió\n- El contrato **libera los tokens** una vez que verifica que el pago ocurrió\n\nEl contrato se convierte en árbitro, no en bóveda. Nunca toca el dinero. Solo verifica que el dinero correcto se movió en la dirección correcta.\n\nEste es el principio de \"verificar-sin-custodia\". Funciona *dentro* de las reglas de Bitcoin en lugar de intentar romperlas.\n\n---\n\n### El Problema ACS: Por Qué los Puentes Sin Confianza No Funcionan\n\nMuchos proyectos han intentado llevar BTC a otras cadenas con puentes \"sin confianza\". La promesa suena genial: \"Bloquea tu BTC aquí, obtén BTC envuelto en nuestra cadena, nadie lo controla.\"\n\nPero cada puente necesita un UTXO en Bitcoin que retenga el BTC bloqueado. Ese UTXO:\n- **Tiene una clave privada** (multisig, federación) = Alguien lo controla = Centralizado\n- **No tiene requisito de clave** = Anyone Can Spend (ACS) = Cualquiera que resuelva el puzzle lo vacía\n\nEsto se llama el problema ACS (Anyone Can Spend). Agregar puzzles más difíciles (como pruebas SPV con OP_CAT, minería PoW, pruebas de Merkle) no lo soluciona. Solo hace que el puzzle sea más costoso de resolver. Si el BTC en el puente vale más que el costo de atacarlo, alguien eventualmente lo resolverá.\n\n**La única forma de resolver el problema del puente es no tener un puente.**\n\n---\n\n## 💡 Perspectiva de la Discusión\n\n> *\"OPNet dijo 'olvida los puentes'. Los contratos corren en Bitcoin L1, nunca retienen tu BTC, los compradores envían BTC directamente a los vendedores. Sin puente, sin custodia, sin ACS. El contrato solo verifica y rastrea el estado.\"*\n> — Bob\n\n---\n\n## ⚠️ Error Común / Concepto Erróneo\n\n**Concepto erróneo: \"Los contratos inteligentes en Bitcoin pueden funcionar como los de Ethereum.\"**\n\nNo pueden. Los contratos de Ethereum retienen ETH y tokens ERC-20. Los contratos de Bitcoin no pueden retener BTC. Cualquier sistema que afirme darte \"DeFi estilo Ethereum en Bitcoin\" con custodia total de BTC está usando un custodio (multisig) o tiene una vulnerabilidad ACS.\n\nCuando veas un proyecto de \"Bitcoin DeFi\", siempre pregunta: **¿Dónde está realmente el BTC? ¿Quién tiene la clave?**\n\n---\n\n## 🔨 Ejercicio Práctico\n\n**Ejercicio 1 — La Auditoría del Puente**\n\nBusca cualquier proyecto de \"Bitcoin DeFi\" que hayas escuchado (ejemplos: OP_CAT Labs, Stacks, Rootstock, DEX basado en Lightning). Para cada uno, responde:\n1. ¿El proyecto requiere que los usuarios hagan bridge de BTC? Si es así, ¿dónde está ese BTC?\n2. ¿Hay un multisig o federación controlando el puente? ¿Quiénes son los firmantes?\n3. Si no hay multisig, ¿qué impide que alguien vacíe el puente?\n\nEscribe tus hallazgos. Deberías encontrar que cada proyecto usa un multisig (centralizado), tiene una vulnerabilidad ACS (roto), o en realidad no mueve BTC real.\n\n**Ejercicio 2 — El Modelo de la Alcancía**\n\nExplica el modelo UTXO de Bitcoin a un amigo o escribe una explicación de un párrafo usando solo las palabras: \"moneda\", \"candado\", \"clave\", \"abrir\" y \"verificar\". No se permite jerga técnica.\n\n---\n\n## ✅ Comprueba Tu Comprensión\n\n1. ¿Qué es un UTXO y por qué requiere una clave privada para gastarse?\n2. ¿Por qué un contrato inteligente de Bitcoin no puede retener BTC en un pool?\n3. ¿Qué significa \"ACS\" y por qué es un problema para los puentes?\n4. ¿Qué significa \"verificar-sin-custodia\"?\n5. ¿Por qué un tiempo de bloque de 10 minutos no es algo que pueda eliminarse mediante ingeniería?\n\n---\n\n## 🔗 Conexión con el Siguiente Módulo\n\nAhora que entiendes las limitaciones fundamentales de Bitcoin, el Módulo 02 explica exactamente cómo OPNet construye un sistema completo de contratos inteligentes *dentro* de esas limitaciones — y por qué eso lo convierte en la única plataforma honesta de Bitcoin DeFi.\n"
+}

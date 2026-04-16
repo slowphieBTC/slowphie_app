@@ -59,10 +59,36 @@ export interface Farm {
   pools:        FarmPool[];
 }
 
+
 export interface FarmsResponse {
   farms: Farm[];
 }
 
+// ── /status endpoint ────────────────────────────────────────────────
+export interface StatusResponse {
+  status:    string;
+  uptime:    number;
+  timestamp: number;
+  scanner: {
+    isRunning:    boolean;
+    lastRunAt:    number;
+    lastError:    string | null;
+    totalScanned: number;
+    uniqueTokens: number;
+    lpTokens:     number;
+  };
+  farms: {
+    total: number;
+    list: Array<{
+      id:         string;
+      name:       string;
+      poolCount:  number;
+      pools:      Array<{ poolId: number; symbol: string; isLP: boolean }>;
+    }>;
+  };
+  fetchedAt:  number;
+  nextScanAt: number;
+}
 const BASE_URL: string =
   (import.meta.env.VITE_SLOWPHIE_API_URL as string | undefined) ?? 'http://localhost:3001';
 
@@ -76,6 +102,13 @@ async function fetchTimeout(url: string): Promise<Response> {
   } finally {
     clearTimeout(timer);
   }
+}
+
+
+export async function fetchStatus(): Promise<StatusResponse> {
+  const res = await fetchTimeout(`${BASE_URL}/status`);
+  if (!res.ok) throw new Error(`Slowphie /status HTTP ${res.status}`);
+  return res.json() as Promise<StatusResponse>;
 }
 
 export async function fetchTrackedTokens(): Promise<SlowphieTracksResponse> {

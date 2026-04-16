@@ -257,7 +257,8 @@ export function usePositions(addresses: string[]) {
                 }
               }
             }
-            return { tokenAddress: rt.address, symbol, pending: formatTokenAmount(rt.pending, 18) };
+            const rewardDecimals = tokenDecimalsMap.get(norm(rt.address)) ?? 18;
+            return { tokenAddress: rt.address, symbol, pending: formatTokenAmount(rt.pending, rewardDecimals) };
           });
           const primaryReward = stakingRewards.find(r => r.pending > 0) ?? stakingRewards[0];
           positions.push({

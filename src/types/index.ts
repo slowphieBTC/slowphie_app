@@ -147,6 +147,9 @@ export interface UserProgress {
 export interface GlossaryTerm {
   term: string;
   definition: string;
+  definition_fr?: string;
+  definition_zh?: string;
+  definition_es?: string;
   letter: string;
   relatedTerms?: string[];
 }

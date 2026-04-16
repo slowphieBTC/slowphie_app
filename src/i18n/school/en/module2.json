@@ -1,0 +1,67 @@
+{
+  "card": {
+    "title": "OPNet Architecture",
+    "subtitle": "Core Concepts — How does it work?",
+    "description": "Explore the five pillars of OPNet: WASM contracts, checksum root consensus, epoch mining, no BTC custody, and upgradeable contracts.",
+    "difficulty": "Beginner-Intermediate",
+    "keyTopics": [
+      "WASM Contracts",
+      "Checksum Root",
+      "Epoch Mining",
+      "ML-DSA Signatures"
+    ]
+  },
+  "quiz": [
+    {
+      "question": "OPNet contracts are written in which language?",
+      "options": [
+        "Solidity",
+        "Rust",
+        "AssemblyScript (compiled to WASM)",
+        "JavaScript"
+      ],
+      "explanation": "OPNet contracts are written in AssemblyScript, a TypeScript-like language that compiles to WebAssembly (WASM). WASM execution is deterministic — the same input always produces the same output on every machine."
+    },
+    {
+      "question": "What is the checksum root?",
+      "options": [
+        "The block hash from Bitcoin",
+        "A cryptographic fingerprint of all OPNet state that every node must agree on",
+        "The signature from the epoch miner",
+        "A Merkle tree root of transactions"
+      ],
+      "explanation": "The checksum root is a cryptographic fingerprint of ALL OPNet state computed after each epoch. Every node independently calculates it — any discrepancy means a node is rejected."
+    },
+    {
+      "question": "How are epoch miners paid?",
+      "options": [
+        "Through block rewards like Bitcoin miners",
+        "Through a team treasury allocation",
+        "Directly by users via CSV-timelocked BTC outputs in their transactions",
+        "Through OP20 token inflation"
+      ],
+      "explanation": "Epoch miners are paid P2P: users include a BTC output going to the winning miner's CSV-timelocked address. No contract, no treasury — direct peer-to-peer Bitcoin payment from user to miner."
+    },
+    {
+      "question": "What is the CSV timelock duration for epoch mining rewards?",
+      "options": [
+        "10 blocks",
+        "144 blocks (approx. 1 day)",
+        "75 blocks (approx. 12.5 hours)",
+        "6 blocks (1 hour)"
+      ],
+      "explanation": "Epoch mining rewards use a 75-block CSV timelock (TIMELOCK_BLOCKS_REWARD: 75). This prevents miners from instantly cashing out and abandoning consensus duties."
+    },
+    {
+      "question": "What layer is at the BOTTOM of OPNet's security stack?",
+      "options": [
+        "ML-DSA quantum-safe signatures",
+        "SHA1 epoch mining / checksum root",
+        "SHA-256 proof-of-work (Bitcoin)",
+        "WASM deterministic execution"
+      ],
+      "explanation": "OPNet's security stack bottom to top: SHA-256 PoW (Bitcoin L1) → SHA1 epoch mining / checksum root (OPNet consensus) → ML-DSA quantum-safe signatures. Bitcoin's base security is the foundation."
+    }
+  ],
+  "content": "# MODULE 02: OPNet Architecture\n\n> **Stage:** Core Concepts — How does it work?\n\n---\n\n## 📌 Learning Objective\n\n> By the end of this module, students will be able to **describe the components of OPNet's architecture** and **explain how each component solves a specific constraint that Bitcoin imposes on smart contracts**.\n\n---\n\n## 📚 Key Concepts Covered\n\n- **AssemblyScript/WASM** — OPNet contracts are written in AssemblyScript and compiled to WebAssembly for deterministic execution\n- **Checksum root** — a cryptographic fingerprint of all OPNet state that every node must agree on\n- **Epoch mining** — the OPNet consensus mechanism where miners use SHA1 proof-of-work to attest state\n- **CSV timelock** — a Bitcoin script feature that locks a coin until a certain number of blocks have passed\n- **OP20 / OP721** — OPNet's token standards (equivalent to ERC-20 and ERC-721 on Ethereum)\n- **Upgradeable contracts** — OPNet contracts can be updated via the `onUpdate()` base class, unlike Ethereum's immutable bytecode\n\n---\n\n## 🧠 Core Lesson Content\n\n### What Is OPNet?\n\nOPNet is a consensus layer that runs on top of Bitcoin Layer 1. It lets you deploy and execute smart contracts directly on Bitcoin — without bridges, without sidechains, without trusting any third party.\n\nThink of it this way: Bitcoin is a spreadsheet that everyone agrees on. OPNet is a calculator that runs on top of that spreadsheet. The calculator can do complex math, but all its results get recorded in the spreadsheet, which Bitcoin secures.\n\n**OPNet in one sentence:** Smart contracts on Bitcoin. No bridge. No custody. Contracts verify — they don't hold your funds.\n\n---\n\n### The Five Pillars of OPNet Architecture\n\n**Pillar 1: WASM Smart Contracts**\n\nContracts are written in AssemblyScript (a TypeScript-like language) and compiled to WebAssembly (WASM). Every OPNet node runs the same WASM bytecode. Because WASM execution is deterministic — the same input always produces the same output, on every machine, in every country — there can be no disagreement about what happened.\n\nThis is the foundation. No contract can produce different results for different nodes. If it could, the system would be broken.\n\n**Pillar 2: The Checksum Root**\n\nAfter every epoch (a batch of transactions), OPNet produces a cryptographic fingerprint of the entire state: all token balances, all contract storage, all pending trades. This fingerprint is called the checksum root.\n\nEvery node independently calculates the checksum root. If a node is running modified code, or trying to cheat, its checksum root will be different from everyone else's. That node gets rejected.\n\nThe checksum root is the enforcement mechanism. You cannot lie about what happened because every other node has the same proof and can instantly detect the lie.\n\n**Pillar 3: Epoch Mining**\n\nOPNet has its own consensus mechanism on top of Bitcoin's PoW. Epoch miners compete using SHA1 proof-of-work to be the one who publishes the checksum root for each epoch. The winning miner gets paid in BTC — directly from user transactions.\n\nHow the reward works (verified from the actual code):\n- When a user interacts with OPNet (swaps, transfers, etc.), they include a BTC output in their transaction that goes to the winning epoch miner's address\n- That address is a **CSV-timelocked** address derived from the miner's public key with a **75-block timelock** (`TIMELOCK_BLOCKS_REWARD: 75`)\n- The miner cannot spend this reward for 75 Bitcoin blocks (~12.5 hours)\n- This is peer-to-peer: users pay miners directly through Bitcoin transactions, no contract involved\n\nThis design is elegant: miners are incentivized by real BTC from real users, and the timelock prevents miners from instantly cashing out and abandoning their duties.\n\n**Pillar 4: Contracts Cannot Hold BTC (By Design)**\n\nThis is not a limitation — it is a design choice that makes the system safe. OPNet contracts are calculators: they track state, verify conditions, and emit results. They never sit between a BTC sender and a BTC receiver.\n\nWhen you buy tokens on NativeSwap:\n1. Your BTC goes **directly** from your wallet to the seller's wallet address\n2. The contract watches to confirm the BTC payment arrived\n3. The contract releases the tokens to you\n\nThe contract is the referee. It never touches the money.\n\n**Pillar 5: Two Layers of Security**\n\nOPNet sits on top of Bitcoin, inheriting Bitcoin's SHA-256 proof-of-work security. On top of that, OPNet adds its own SHA1 epoch mining layer. To attack OPNet's state, an attacker would need to compromise BOTH layers simultaneously.\n\nAdditionally, OPNet has already implemented ML-DSA (FIPS 204) quantum-resistant signatures for all contract interactions — making it the only Bitcoin L1 project with post-quantum cryptography already deployed.\n\nThe full security stack:\n```\nLayer 3: ML-DSA quantum-safe signatures (OPNet)\nLayer 2: SHA1 epoch mining / checksum root (OPNet)\nLayer 1: SHA-256 proof-of-work (Bitcoin)\n```\n\n---\n\n### OP20 and OP721 Token Standards\n\nOPNet has its own token standards that live entirely in contract state — not in UTXOs:\n\n- **OP20**: Fungible tokens (like ERC-20). Example: MOTO token, stablecoins.\n- **OP721**: Non-fungible tokens (like ERC-721).\n\nThese token balances are secured by ML-DSA quantum-resistant signatures. They do not live in Bitcoin UTXOs. They cannot be stolen by cracking an ECDSA key. This is a fundamental security advantage over every other token standard in crypto.\n\n---\n\n### Upgradeable Contracts: The Feature Ethereum Doesn't Have\n\nEthereum contracts are immutable bytecode. Once deployed, the code never changes. This was marketed as \"code is law\" — a feature. But it becomes a fatal flaw when the cryptography underneath breaks (more on this in Module 05).\n\nOPNet contracts can extend the `Upgradeable` base class with an `onUpdate()` function. The OPNet runtime natively supports contract upgrades. This means:\n- If a security vulnerability is found, it can be patched\n- When post-quantum signatures become necessary, contracts can be updated\n- The ecosystem can evolve without being frozen in 2026's code forever\n\n---\n\n### The Two-Year Testnet Story\n\nOPNet spent from 2024 to early 2026 on testnet. Two years of real-world testing before a single satoshi of real money was at risk. Alkanes — a competitor — tried to skip this and ship first. They got exploited. OPNet chose correctness over speed, and that is why it launched successfully.\n\n---\n\n## 💡 Insight From Discussion\n\n> *\"OPNet's epoch mining uses SHA1 proof-of-work to secure consensus and state, miners compete to attest the checksum root. The worst case is consensus disruption — nobody's BTC is at risk because contracts don't hold any.\"*\n> — Bob\n\n---\n\n## ⚠️ Common Mistake / Misconception\n\n**Misconception: \"OPNet is like Ethereum but on Bitcoin.\"**\n\nIt is not. Ethereum contracts hold ETH. OPNet contracts do not hold BTC. Ethereum uses account-based state. OPNet uses Bitcoin's UTXO-based settlement with a state layer on top. Ethereum contracts are immutable. OPNet contracts are upgradeable. The similarity is that both platforms allow you to run code that changes state. The architecture is completely different.\n\n---\n\n## 🔨 Practical Exercise\n\n**Exercise 1 — Map the Architecture**\n\nDraw (on paper or digitally) the flow of a simple token transfer on OPNet:\n- User A has 1000 MOTO tokens\n- User A sends 100 MOTO to User B\n- What checks does the OPNet contract perform?\n- Where does the state get updated?\n- How does the checksum root change?\n- How does a node that tries to lie about the result get caught?\n\n**Exercise 2 — Compare the Security Models**\n\nFill in this table:\n\n| System | What secures the state? | What secures user funds? | Can contracts hold BTC? |\n|--------|------------------------|--------------------------|------------------------|\n| Bitcoin | SHA-256 PoW | ECDSA private keys | N/A |\n| Ethereum | Validators (PoS) | ECDSA private keys | Yes (ETH in contracts) |\n| OPNet | SHA-256 + SHA1 PoW | ML-DSA signatures | No (by design) |\n\nExplain in one sentence why the \"No\" in OPNet's last column is a security advantage, not a weakness.\n\n---\n\n## ✅ Check Your Understanding\n\n1. What programming language are OPNet contracts written in, and what does it compile to?\n2. What is the checksum root and how does it prevent cheating?\n3. How are epoch miners paid, and why does the CSV timelock matter?\n4. What is the difference between OPNet's contract upgradeability and Ethereum's proxy pattern?\n5. Name the three layers of OPNet's security stack from bottom to top.\n\n---\n\n## 🔗 Connection to Next Module\n\nNow that you understand how OPNet works architecturally, Module 03 dives into NativeSwap — the DEX that runs on top of OPNet — and shows exactly how a Bitcoin trade executes without any custodian in the loop.\n"
+}

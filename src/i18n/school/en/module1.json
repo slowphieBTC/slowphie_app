@@ -1,0 +1,67 @@
+{
+  "card": {
+    "title": "Bitcoin DeFi Foundation",
+    "subtitle": "What is it? Why does it matter?",
+    "description": "Learn the fundamental rules of Bitcoin that make DeFi both difficult and powerful. Master UTXO model, private keys, and the verify-dont-custody principle.",
+    "difficulty": "Beginner",
+    "keyTopics": [
+      "UTXO Model",
+      "Private Key Requirement",
+      "ACS Problem",
+      "Verify-Dont-Custody"
+    ]
+  },
+  "quiz": [
+    {
+      "question": "What does UTXO stand for?",
+      "options": [
+        "Unified Transaction eXchange Output",
+        "Unspent Transaction Output",
+        "Universal Token Exchange Operation",
+        "Unstaked Token eXchange Output"
+      ],
+      "explanation": "UTXO stands for Unspent Transaction Output — the fundamental unit of Bitcoin accounting. Like a digital coin, it can only be spent by signing with the correct private key."
+    },
+    {
+      "question": "Why can a Bitcoin smart contract NOT hold BTC in a pool?",
+      "options": [
+        "Bitcoin is too slow for smart contracts",
+        "Contracts do not have private keys to sign spending transactions",
+        "The fees would be too high",
+        "It requires a sidechain to work"
+      ],
+      "explanation": "Bitcoin UTXOs require a private key signature to be spent. Smart contracts have no private key, so they cannot authorize spending. Any BTC held by a script needs a custodian with the key — or it becomes an ACS vulnerability."
+    },
+    {
+      "question": "ACS stands for?",
+      "options": [
+        "Advanced Contract Security",
+        "Anyone Can Spend",
+        "Automated Consensus System",
+        "Asset Custody Solution"
+      ],
+      "explanation": "ACS means Anyone Can Spend. A Bitcoin UTXO where no private key is required — anyone who meets the script conditions can drain it. This is why trustless bridges on Bitcoin are architecturally impossible."
+    },
+    {
+      "question": "What does 'verify-don't-custody' mean?",
+      "options": [
+        "The contract verifies identity before storing funds",
+        "Contracts verify payments happened but never hold the BTC",
+        "Users must verify withdrawals manually",
+        "A KYC process for DeFi"
+      ],
+      "explanation": "Verify-don't-custody means BTC moves directly between users P2P, and the smart contract only verifies the payment happened. The contract is a referee, not a vault — it never touches the money."
+    },
+    {
+      "question": "Why can Bitcoin block times NOT be engineered to be instant?",
+      "options": [
+        "Mining hardware is too slow",
+        "The internet is too slow for it",
+        "Bitcoin settles on-chain in blocks — physics, not engineering",
+        "It requires a hard fork first"
+      ],
+      "explanation": "Bitcoin blocks take ~10 minutes by design of distributed proof-of-work consensus. If something claims instant trustless BTC settlement, someone is holding the BTC as a custodian."
+    }
+  ],
+  "content": "# MODULE 01: Bitcoin DeFi Foundation\n\n> **Stage:** Foundation — What is it? Why does it matter?\n\n---\n\n## 📌 Learning Objective\n\n> By the end of this module, students will be able to **explain the fundamental rules of Bitcoin** that make it different from every other blockchain, and **describe why those rules make DeFi on Bitcoin both difficult and powerful**.\n\n---\n\n## 📚 Key Concepts Covered\n\n- **UTXO model** — Bitcoin tracks money as unspent transaction outputs, not account balances\n- **Private key requirement** — on Bitcoin, spending any coin requires a private key; no exceptions\n- **Block time** — Bitcoin confirms transactions approximately every 10 minutes\n- **Contracts cannot hold BTC** — smart contracts on Bitcoin cannot custody, hold, or intercept BTC\n- **Verify-don't-custody** — the design philosophy that works *with* Bitcoin's rules instead of against them\n\n---\n\n## 🧠 Core Lesson Content\n\n### Bitcoin Has Three Unbreakable Rules\n\nBefore you can understand Bitcoin DeFi, you have to understand what Bitcoin actually is at its core. Bitcoin has rules that cannot be changed by any project, any developer, or any clever marketing.\n\n**Rule 1: To spend a coin, you need a private key.**\n\nA Bitcoin UTXO (Unspent Transaction Output) — think of it as a digital coin — can only be moved if you sign the transaction with the correct private key. No private key, no spend. This is not a limitation that engineers forgot to fix. It is the entire security model of Bitcoin.\n\nThis rule has a massive consequence: **a smart contract cannot hold BTC in a pool.** A contract doesn't have a private key. It is just code. To hold BTC in a pool, someone (or something) needs to be able to spend it. That requires a key. If a contract holds BTC, then someone with that key can take it. That someone is a custodian.\n\n**Rule 2: Blocks take approximately 10 minutes.**\n\nBitcoin settles in blocks. One block ≈ 10 minutes. This is not something that can be engineered away. Real BTC moving on-chain means waiting for a block. \"Instant Bitcoin settlement\" without a custodian is physically impossible for the same reason you can't travel faster than light.\n\n**Rule 3: The UTXO model hides public keys (until you spend).**\n\nWhen Bitcoin was designed, Satoshi Nakamoto made an interesting choice: addresses don't show your public key directly. They show a *hash* of your public key. Your actual public key is only revealed when you *spend* from that address. This distinction becomes critical in Module 05 when we discuss quantum computing.\n\n---\n\n### Why These Rules Kill Most \"Bitcoin DeFi\" Ideas\n\nTraditional DeFi (Ethereum-style) works like this:\n1. Users deposit tokens into a smart contract pool\n2. The contract holds those tokens and manages them\n3. The contract can send tokens to anyone based on its logic\n\nThis works on Ethereum because Ethereum contracts *can* hold tokens. But **can they hold ETH?** Yes — and that's also why Ethereum bridges and vaults get drained regularly.\n\nOn Bitcoin, if you want a contract to \"hold BTC,\" you immediately face the key problem:\n- Either the UTXO has a private key = someone is custodying it = centralized\n- Or the UTXO has no private key requirement = Anyone Can Spend = exploitable\n\nThere is no third option. This is not a bug in Bitcoin. It is a feature that forces DeFi designers to think differently.\n\n---\n\n### The Solution: Verify, Don't Custody\n\nOPNet's answer to this problem is elegant: **don't hold the BTC at all.**\n\nInstead of designing a system where a contract holds BTC and distributes it, design a system where:\n- BTC moves **directly** from buyer to seller\n- The contract just **watches** to confirm the BTC moved\n- The contract **releases tokens** once it verifies the payment happened\n\nThe contract becomes a referee, not a vault. It never touches the money. It only verifies that the right money moved in the right direction.\n\nThis is the \"verify-don't-custody\" principle. It works *within* Bitcoin's rules instead of trying to break them.\n\n---\n\n### The ACS Problem: Why Trustless Bridges Don't Work\n\nMany projects have tried to bridge BTC to other chains with \"trustless\" bridges. The promise sounds great: \"Lock your BTC here, get wrapped BTC on our chain, no one controls it.\"\n\nBut every bridge needs a UTXO on Bitcoin that holds the locked BTC. That UTXO either:\n- **Has a private key** (multisig, federation) = Someone controls it = Centralized\n- **Has no key requirement** = Anyone Can Spend (ACS) = Anyone who solves the puzzle drains it\n\nThis is called the ACS (Anyone Can Spend) problem. Adding harder puzzles (like OP_CAT SPV proofs, PoW mining, merkle proofs) doesn't fix it. It just makes the puzzle more expensive to solve. If the BTC in the bridge is worth more than the cost of attacking, someone will eventually solve it.\n\n**The only way to solve the bridge problem is to not have a bridge.**\n\n---\n\n## 💡 Insight From Discussion\n\n> *\"OPNet said 'forget bridges.' Contracts run on Bitcoin L1, they never hold your BTC, buyers send BTC directly to sellers. No bridge, no custody, no ACS. The contract just verifies and tracks state.\"*\n> — Bob\n\n---\n\n## ⚠️ Common Mistake / Misconception\n\n**Misconception: \"Smart contracts on Bitcoin can work like smart contracts on Ethereum.\"**\n\nThey cannot. Ethereum contracts hold ETH and ERC-20 tokens. Bitcoin contracts cannot hold BTC. Any system that claims to give you \"Ethereum-style DeFi on Bitcoin\" with full BTC custody is either using a custodian (multisig) or has an ACS vulnerability.\n\nWhen you see a \"Bitcoin DeFi\" project, always ask: **Where does the BTC actually sit? Who has the key?**\n\n---\n\n## 🔨 Practical Exercise\n\n**Exercise 1 — The Bridge Audit**\n\nLook up any \"Bitcoin DeFi\" project you've heard of (examples: OP_CAT Labs, Stacks, Rootstock, Lightning-based DEX). For each one, answer:\n1. Does the project require users to bridge BTC? If yes, where does that BTC sit?\n2. Is there a multisig or federation controlling the bridge? Who are the signers?\n3. If there's no multisig, what prevents someone from draining the bridge?\n\nWrite down your findings. You should find that every project either uses a multisig (centralized) or has an ACS vulnerability (broken), or doesn't actually move real BTC at all.\n\n**Exercise 2 — The Piggy Bank Model**\n\nExplain Bitcoin's UTXO model to a friend or write a one-paragraph explanation using only the words: \"coin,\" \"lock,\" \"key,\" \"open,\" and \"verify.\" No technical jargon allowed.\n\n---\n\n## ✅ Check Your Understanding\n\n1. What is a UTXO and why does it require a private key to spend?\n2. Why can't a Bitcoin smart contract hold BTC in a pool?\n3. What does \"ACS\" stand for and why is it a problem for bridges?\n4. What does \"verify-don't-custody\" mean?\n5. Why is a 10-minute block time not something that can be engineered away?\n\n---\n\n## 🔗 Connection to Next Module\n\nNow that you understand Bitcoin's fundamental constraints, Module 02 explains exactly how OPNet builds a full smart contract system *within* those constraints — and why that makes it the only honest Bitcoin DeFi platform.\n"
+}

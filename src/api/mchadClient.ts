@@ -16,7 +16,9 @@ import axios from 'axios';
 import type { MchadWalletResponse } from './slowphie';
 
 const OPNET_RPC  = 'https://mainnet.opnet.org/api/v1/json-rpc';
-const META_URL   = 'https://api.slowphie.com/custom/mchad/meta';
+const SLOWPHIE_BASE_URL: string =
+  (import.meta.env.VITE_SLOWPHIE_API_URL as string | undefined) ?? 'http://localhost:3001';
+const META_URL   = `${SLOWPHIE_BASE_URL}/custom/mchad/meta`;
 const TIMEOUT_MS = 10_000;
 
 let _rpcId = 900_000; // high start — no clash with opnet.ts counter
