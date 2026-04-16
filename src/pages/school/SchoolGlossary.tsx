@@ -62,7 +62,7 @@ export function SchoolGlossary() {
         </motion.div>
 
         <div style={{ position: 'relative', marginBottom: '0.625rem' }}>
-          <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1rem', pointerEvents: 'none', color: '#475569' }}>\uD83D\uDD0D</span>
+          <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontSize: '1rem', pointerEvents: 'none', color: '#475569' }}>🔍</span>
           <input ref={inputRef} type="text" value={search} onChange={e => { setSearch(e.target.value); setActiveLetter(null); }}
             placeholder={t('glossary.searchPlaceholder')}
             style={{ width: '100%', boxSizing: 'border-box', paddingLeft: '3rem', paddingRight: '2.5rem', paddingTop: '0.875rem', paddingBottom: '0.875rem', borderRadius: '12px', border: search ? '1px solid rgba(247,147,26,0.4)' : '1px solid rgba(255,255,255,0.08)', backgroundColor: '#0a0a14', color: '#f0f0f0', fontSize: '0.9rem', outline: 'none', transition: 'border 0.2s' }} />
@@ -86,7 +86,7 @@ export function SchoolGlossary() {
           <div style={{ flex: 1, minWidth: 0 }}>
             {filtered.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '4rem 1rem' }}>
-                <div style={{ fontSize: '3rem', marginBottom: '0.875rem' }}>\uD83D\uDD0D</div>
+                <div style={{ fontSize: '3rem', marginBottom: '0.875rem' }}>🔍</div>
                 <h3 style={{ color: '#4a5568', margin: '0 0 0.5rem' }}>{t('glossary.noTermsFound')}</h3>
                 <p style={{ color: '#334155', fontSize: '0.85rem' }}>{t('glossary.tryDifferent')}</p>
               </div>
