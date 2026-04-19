@@ -183,7 +183,7 @@
           },
           "livePrice": {
             "title": "Precio BTC y datos de bloque en vivo",
-            "desc": "Impulsado por el flujo WebSocket de BlockFeed — los precios y la altura de bloque se actualizan en tiempo real."
+            "desc": "Impulsado por Slowphie Server — los precios y la altura de bloque se actualizan cada 30 segundos mediante sondeo REST."
           },
           "aggregation": {
             "title": "Agregación completa de posiciones",
@@ -202,8 +202,8 @@
             "desc": "Agrega tenencias de tokens en todas las billeteras rastreadas para una instantánea completa del portafolio."
           },
           "refresh": {
-            "title": "Actualización cada 30s",
-            "desc": "Los datos se actualizan silenciosamente cada 30 segundos. Navega y regresa — sin necesidad de recargar."
+            "title": "Actualización por bloques",
+            "desc": "Los datos se actualizan cuando se detectan nuevos bloques de Bitcoin. Navega y regresa — sin necesidad de recargar."
           }
         },
         "spec": {

@@ -15,8 +15,8 @@ import type { Farm } from '../api/slowphie';
 import { useAppStore } from '../store';
 import type { Position, FarmInfo } from '../types';
 
-/** Cache TTL: 30 seconds */
-const CACHE_TTL_MS = 30_000;
+/** Fallback interval: 10 minutes */
+const FALLBACK_TTL_MS = 600_000;
 
 /** Farm/staking contracts — excluded from wallet balance scan */
 const EXCLUDED_ADDRESSES = new Set([
@@ -25,6 +25,25 @@ const EXCLUDED_ADDRESSES = new Set([
   CONTRACTS.SWAP_FARM,
   CONTRACTS.STAKING,
 ].map(a => a.toLowerCase()));
+
+/** Core ecosystem tokens — always fetched in Phase 1.
+ *  Includes major tokens + LP pool contracts + MCHAD/MOTO custom staking LP. */
+const CORE_ECOSYSTEM_TOKENS = new Set([
+  CONTRACTS.MOTO_TOKEN,
+  CONTRACTS.PILL_TOKEN,
+  CONTRACTS.SAT_TOKEN,
+  CONTRACTS.SWAP_TOKEN,
+  CONTRACTS.MCHAD_TOKEN,
+  CONTRACTS.BLUE_TOKEN,
+  CONTRACTS.MOTO_PILL_LP,
+  CONTRACTS.LP_SWMOTO,
+  CONTRACTS.LP_BLUEPILL,
+  CONTRACTS.LP_BLUEMOTO,
+  // MCHAD/MOTO custom staking LP
+  '0xb0c47bdfabfc15772dc40b4e65e4ca3c3440229a580a4a792a2f01c32d6ec944',
+].map(a => a.toLowerCase()));
+
+const DISCOVERY_BATCH_SIZE = 8;
 
 // ── Minimal token shape used for detection ────────────────────────────────
 interface TokenEntry {
@@ -111,15 +130,16 @@ function farmLink(farm: Farm): string {
 const norm = (a: string) => a.toLowerCase();
 
 export function usePositions(addresses: string[]) {
-  const allPositions         = useAppStore((s) => s.allPositions);
-  const positionsLastFetched = useAppStore((s) => s.positionsLastFetched);
-  const setAllPositions      = useAppStore((s) => s.setAllPositions);
-  const mergeTokenIcons      = useAppStore((s) => s.mergeTokenIcons);
+  const allPositions   = useAppStore((s) => s.allPositions);
+  const latestBlock    = useAppStore((s) => s.latestBlock);
+  const setAllPositions = useAppStore((s) => s.setAllPositions);
+  const mergeTokenIcons = useAppStore((s) => s.mergeTokenIcons);
 
   const [loading,    setLoading]    = useState(() => allPositions.length === 0 && addresses.length > 0);
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
   const fetchingRef                 = useRef(false);
+  const phase2IdRef                 = useRef(0);
 
   /** Token list cache — loaded once per session from /tracks */
   const tokenListRef  = useRef<TokenEntry[] | null>(null);
@@ -134,6 +154,7 @@ export function usePositions(addresses: string[]) {
     fetchingRef.current = true;
     if (!silent) setLoading(true);
     setError(null);
+    const currentPhase2Id = ++phase2IdRef.current;
 
     // ── 1. Load token list + farm list from server (or fallback) ─────────
     if (!tokenListRef.current || !farmListRef.current) {
@@ -161,9 +182,6 @@ export function usePositions(addresses: string[]) {
         }
 
         // Count how many tokens WITH icons share each symbol — detect true icon collisions.
-        // Only icon-having tokens matter: if 2 tokens share a symbol but only 1 has an icon,
-        // count=1 → symbol key set for that token (safe). The icon-less token is protected
-        // by resolveIcon's strict addr: lookup (returns undefined → letter avatar).
         const symbolIconCount: Record<string, number> = {};
         for (const t of [...resp.tokens, ...resp.pools]) {
           if (t.icon && t.icon.startsWith('http')) {
@@ -177,13 +195,9 @@ export function usePositions(addresses: string[]) {
         for (const t of [...resp.tokens, ...resp.pools]) {
           if (t.icon && t.icon.startsWith('http')) {
             const sym = t.symbol.toUpperCase();
-            // Only set symbol key when this is the ONLY token with this symbol.
-            // If two tokens share a symbol (e.g. two PEPEs), skip symbol key entirely
-            // so the icon-less one never accidentally inherits the other's image.
             if ((symbolIconCount[sym] ?? 0) <= 1) {
               icons[sym] = t.icon;
             }
-            // Always seed by contract address for precise resolution
             if (t.address) icons[`addr:${t.address.toLowerCase()}`] = t.icon;
           }
           lookup.set(norm(t.address), {
@@ -218,6 +232,34 @@ export function usePositions(addresses: string[]) {
 
     const positions: Position[] = [];
 
+    // ── Build coreTokenSet from ecosystem tokens + farm pools + LP pairs ───
+    // This is address-independent, built once before the loop.
+    const coreTokenSet = new Set<string>();
+    for (const addr of CORE_ECOSYSTEM_TOKENS) coreTokenSet.add(addr);
+    for (const farm of farms) {
+      for (const pool of farm.pools) {
+        if (pool.tokenContract) coreTokenSet.add(norm(pool.tokenContract));
+      }
+      coreTokenSet.add(norm(farm.rewardToken));
+    }
+    for (const t of tokenList) {
+      if (t.isPool) {
+        if (t.token0Address) coreTokenSet.add(norm(t.token0Address));
+        if (t.token1Address) coreTokenSet.add(norm(t.token1Address));
+      }
+    }
+    coreTokenSet.add(norm(CONTRACTS.MCHAD_TOKEN));
+
+    // Split tokenList into core and discovery
+    const coreTokens = tokenList.filter(t => coreTokenSet.has(norm(t.address)));
+    const discoveryTokens = tokenList.filter(t => !coreTokenSet.has(norm(t.address)));
+
+    // Accumulate discovery tokens per address for Phase 2
+    const discoveryTokensByAddr: {
+      rawAddr: string;
+      opnetAddr: string;
+      token: TokenEntry;
+    }[] = [];
     // ── 2. Per-address detection ───────────────────────────────────────────
     for (const rawAddr of addresses) {
       try {
@@ -244,14 +286,9 @@ export function usePositions(addresses: string[]) {
               if (found) {
                 symbol = found.symbol;
                 if (found.icon) {
-                  // Seed by BOTH addr: key (collision-safe) and symbol key (fallback)
-                  // addr: key is the source of truth; symbol key only set for unique symbols
                   const addrIcons: Record<string, string> = {
                     [`addr:${norm(rt.address)}`]: found.icon,
                   };
-                  // Only set symbol key if no other token shares this symbol
-                  // (symbolCount not available here — safe to seed symbol key as secondary fallback
-                  // since addr: key takes priority in resolveIcon/TokenIcon when contractAddress known)
                   addrIcons[symbol.toUpperCase()] = found.icon;
                   mergeTokenIcons(addrIcons);
                 }
@@ -267,7 +304,7 @@ export function usePositions(addresses: string[]) {
             amount:          formatTokenAmount(staking.stakedMoto, 18),
             rewards:         primaryReward?.pending ?? 0,
             rewardToken:     primaryReward?.symbol ?? null,
-            contractAddress: CONTRACTS.MOTO_TOKEN,   // staked MOTO → token contract (not staking contract)
+            contractAddress: CONTRACTS.MOTO_TOKEN,
             stakingRewards,
           });
         }
@@ -345,15 +382,17 @@ export function usePositions(addresses: string[]) {
           }
         }
 
-        // ── 2e. Fetch all wallet balances in parallel ─────────────────────
-        const walletRaw = await Promise.all(
-          tokenList.map(t => getTokenBalance(t.address, opnetAddr).catch(() => 0n))
+        // ── 2e. Core/Discovery tokens already split outside loop ───────────
+
+        // ── 2e-1. Phase 1: fetch core token balances only ──────────────────
+        const coreRawBalances = await Promise.all(
+          coreTokens.map(t => getTokenBalance(t.address, opnetAddr).catch(() => 0n))
         );
 
-        // ── 2e-2. Filter false-positive farm entries ──────────────────────
+        // ── 2e-2. Build rawBalMap from core tokens; filter false-positive farms ──
         const rawBalMap = new Map<string, bigint>();
-        for (let i = 0; i < tokenList.length; i++) {
-          rawBalMap.set(norm(tokenList[i].address), walletRaw[i]);
+        for (let i = 0; i < coreTokens.length; i++) {
+          rawBalMap.set(norm(coreTokens[i].address), coreRawBalances[i]);
         }
         for (const [tokenAddr, farmInfos] of farmsByToken) {
           const rawBal = rawBalMap.get(tokenAddr) ?? 0n;
@@ -378,10 +417,10 @@ export function usePositions(addresses: string[]) {
           mchadLpStakingForToken[MCHAD_MOTO_LP_ADDR_NORM] = mchadLpPos2;
         }
 
-        // ── 2f. Build token + LP positions ────────────────────────────────
-        for (let i = 0; i < tokenList.length; i++) {
-          const token     = tokenList[i];
-          const rawBal    = walletRaw[i];
+        // ── 2f. Build core token + LP positions (Phase 1) ────────────────────
+        for (let i = 0; i < coreTokens.length; i++) {
+          const token     = coreTokens[i];
+          const rawBal    = coreRawBalances[i];
           const walletAmt = formatTokenAmount(rawBal, token.decimals);
           const fms       = farmsByToken.get(norm(token.address)) ?? [];
           const hasFarm   = fms.length > 0;
@@ -416,7 +455,6 @@ export function usePositions(addresses: string[]) {
                 const t0Dec = (token.token0Address ? tokenDecimalsMap.get(norm(token.token0Address)) : undefined) ?? 18;
                 const t1Dec = (token.token1Address ? tokenDecimalsMap.get(norm(token.token1Address)) : undefined) ?? 18;
                 try {
-                  // Convert float string → bigint (LP has 18 decimals) without float precision loss
                   const stakedBigInt = BigInt(Math.round(stakedNum * 1e9)) * BigInt(1_000_000_000);
                   lpUnderlyingStaked = await getLPUnderlying(
                     token.address,
@@ -492,31 +530,117 @@ export function usePositions(addresses: string[]) {
           });
         }
 
+        // ── Queue discovery tokens for Phase 2 ─────────────────────────────
+        for (const dt of discoveryTokens) {
+          discoveryTokensByAddr.push({ rawAddr, opnetAddr, token: dt });
+        }
+
       } catch {
         // continue with next address silently
       }
     }
 
+    // ── Phase 1 complete: push core positions (discovery tokens will be added by Phase 2) ──
     setAllPositions(positions);
     setLoading(false);
     fetchingRef.current = false;
+
+    // ── Phase 2: discovery scan — batch-fetch non-core tokens ──────────────
+    for (let batchStart = 0; batchStart < discoveryTokensByAddr.length; batchStart += DISCOVERY_BATCH_SIZE) {
+      if (phase2IdRef.current !== currentPhase2Id) break; // abort stale scan
+
+      const batch = discoveryTokensByAddr.slice(batchStart, batchStart + DISCOVERY_BATCH_SIZE);
+      const balResults = await Promise.all(
+        batch.map(entry => getTokenBalance(entry.token.address, entry.opnetAddr).catch(() => 0n))
+      );
+
+      const newPositions: Position[] = [];
+      for (let i = 0; i < batch.length; i++) {
+        const entry   = batch[i];
+        const token   = entry.token;
+        const rawBal  = balResults[i];
+        const walletAmt = formatTokenAmount(rawBal, token.decimals);
+
+        let hasPosition = walletAmt > 0;
+
+        if (token.isPool) {
+          const stakedRaw = 0n; // discovery tokens have no farm entries
+          if (stakedRaw > 0n) hasPosition = true;
+          // Only call getLPUnderlying if balance is significant (skip dust)
+          let lpUnderlying;
+          if (rawBal > 10n && token.token0Symbol && token.token1Symbol) {
+            const t0Dec = (token.token0Address ? tokenDecimalsMap.get(norm(token.token0Address)) : undefined) ?? 18;
+            const t1Dec = (token.token1Address ? tokenDecimalsMap.get(norm(token.token1Address)) : undefined) ?? 18;
+            try { lpUnderlying = await getLPUnderlying(token.address, token.token0Symbol, t0Dec, token.token1Symbol, t1Dec, rawBal, token.token0Address ?? undefined, token.token1Address ?? undefined); } catch { /* ignore */ }
+          }
+          if (hasPosition) {
+            const lpLabel = token.token0Symbol && token.token1Symbol
+              ? `${token.token0Symbol}/${token.token1Symbol}`
+              : token.symbol;
+            newPositions.push({
+              id:              `lp-${token.address}-${entry.rawAddr}`,
+              address:         entry.rawAddr,
+              type:            'lp',
+              label:           `LP ${lpLabel}`,
+              token:           lpLabel,
+              amount:          walletAmt,
+              rewards:         0,
+              rewardToken:     null,
+              contractAddress: token.address,
+              hasFarmView:     false,
+              walletBalance:   walletAmt,
+              farms:           undefined,
+              lpUnderlying,
+            });
+          }
+        } else {
+          if (hasPosition) {
+            newPositions.push({
+              id:              `token-${token.address}-${entry.rawAddr}`,
+              address:         entry.rawAddr,
+              type:            'farm',
+              label:           token.symbol,
+              token:           token.symbol,
+              amount:          walletAmt,
+              rewards:         0,
+              rewardToken:     null,
+              contractAddress: token.address,
+              hasFarmView:     false,
+              walletBalance:   walletAmt,
+              farms:           undefined,
+            });
+          }
+        }
+      }
+
+      // Merge discovery positions into live state — fresh data replaces stale by ID
+      if (newPositions.length > 0 && phase2IdRef.current === currentPhase2Id) {
+        const existing = useAppStore.getState().allPositions;
+        const merged = new Map<string, Position>();
+        for (const p of existing) merged.set(p.id, p);
+        for (const p of newPositions) merged.set(p.id, p); // fresh overwrites stale
+        setAllPositions([...merged.values()]);
+      }
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addresses.join(',')]);
+  const lastBlockRef = useRef<number>(0);
 
   useEffect(() => {
     if (!addresses.length) return;
-
-    const now     = Date.now();
-    const isStale = now - positionsLastFetched > CACHE_TTL_MS;
+    const blockHeight = latestBlock?.height ?? 0;
+    const isNewBlock = blockHeight > 0 && blockHeight > lastBlockRef.current;
     const isEmpty = allPositions.length === 0;
-
-    if (isEmpty || isStale) {
-      fetchAll(/* silent= */ !isEmpty);
+    if (isEmpty || isNewBlock) {
+      lastBlockRef.current = blockHeight;
+      fetchAll(!isEmpty);
     }
+  }, [addresses.join(','), latestBlock?.height]);
 
-    const interval = setInterval(() => fetchAll(true), CACHE_TTL_MS);
+  useEffect(() => {
+    if (!addresses.length) return;
+    const interval = setInterval(() => fetchAll(true), FALLBACK_TTL_MS);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addresses.join(',')]);
 
   // Manual refresh — clears all caches to re-fetch from server

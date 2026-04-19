@@ -1,6 +1,5 @@
-import { useCallback } from 'react'
-import { Analytics } from '@vercel/analytics/react'
 import { Routes, Route } from 'react-router-dom'
+import { Analytics } from '@vercel/analytics/react'
 import AppBar from './components/AppBar'
 import { StatsBar } from './components/StatsBar'
 import { SettingsModal } from './components/SettingsModal'
@@ -12,24 +11,10 @@ import { SchoolModule } from './pages/school/SchoolModule'
 import { SchoolGlossary } from './pages/school/SchoolGlossary'
 import { About } from './pages/About'
 import { useBtcPrice } from './hooks/useBtcPrice'
-import { useBlockFeedStream } from './hooks/useWebSocket'
-import { useAppStore } from './store'
-import type { StreamEvent } from './hooks/useWebSocket'
 
 function AppInner() {
-  const setLatestBlock = useAppStore((s) => s.setLatestBlock)
-  const addBlockPoint  = useAppStore((s) => s.addBlockPoint)
-
-  // Live BTC price polling
+  // Live BTC price & block polling via Slowphie Server
   useBtcPrice()
-
-  // Live WebSocket stream
-  useBlockFeedStream(useCallback((event: StreamEvent) => {
-    if (event.type === 'block') {
-      setLatestBlock({ height: event.height, timestamp: event.timestamp })
-      addBlockPoint({ time: event.timestamp, height: event.height, txCount: event.transactions })
-    }
-  }, [setLatestBlock, addBlockPoint]))
 
   return (
     <div className="min-h-screen flex flex-col bg-[#060a14]">

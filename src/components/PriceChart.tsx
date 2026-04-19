@@ -114,7 +114,7 @@ function PriceChartInner({ height = 220, showTitle = true }: Props) {
         <div className="flex items-center justify-between mb-4">
           <div>
             <div className="text-sm font-semibold text-white">BTC / USD</div>
-            <div className="text-xs text-gray-500 mt-0.5">Live price feed · BlockFeed stream</div>
+            <div className="text-xs text-gray-500 mt-0.5">Live price feed · Slowphie Server</div>
           </div>
           {btcPrice && (
             <div className="text-right">
@@ -134,7 +134,7 @@ function PriceChartInner({ height = 220, showTitle = true }: Props) {
           <div className="text-center">
             <div className="text-2xl mb-2">📡</div>
             <div>Waiting for live price data…</div>
-            <div className="text-xs text-gray-700 mt-1">Connecting to BlockFeed stream</div>
+            <div className="text-xs text-gray-700 mt-1">Connecting to Slowphie Server</div>
           </div>
         </div>
       ) : (

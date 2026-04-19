@@ -84,7 +84,7 @@ export function About() {
         { title: t('about.sections.tracks.features.refresh.title'),        desc: t('about.sections.tracks.features.refresh.desc') },
       ],
       getTechSpec: (s: TracksStats): [string, string][] => [
-        [t('about.sections.tracks.spec.dataSource'),       'OPNet Mainnet RPC + BlockFeed REST & WebSocket'],
+        [t('about.sections.tracks.spec.dataSource'),       'OPNet Mainnet RPC + Slowphie Server REST'],
         [t('about.sections.tracks.spec.trackedTokens'),    s.tokenCount > 0 ? `${s.tokenCount} tokens` : ld],
         [t('about.sections.tracks.spec.trackedLpPools'),   s.poolCount  > 0 ? `${s.poolCount} pools`   : ld],
         [t('about.sections.tracks.spec.farmsTracked'),     s.farmCount  > 0 ? s.farmNames.join(', ')   : ld],

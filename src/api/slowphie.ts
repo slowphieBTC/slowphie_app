@@ -5,6 +5,35 @@
  *  - prod: set VITE_SLOWPHIE_API_URL in Vercel env vars
  */
 
+// ── Feed types ──────────────────────────────────────────────────────
+export interface OraclePrice {
+  symbol: string;
+  price: string;
+  confidence: number;
+  captured_at: string;
+}
+
+export interface LatestBlock {
+  block_height: string;
+  bitcoin_block_height: string;
+  opnet_block_height: string;
+  btc_tx_count: number;
+  contract_calls: number;
+  events_count: number;
+  indexed_at: string;
+}
+
+export interface OracleResponse {
+  ok: boolean;
+  data: OraclePrice[];
+}
+
+export interface BlockResponse {
+  ok: boolean;
+  data: LatestBlock;
+}
+
+
 export interface TrackedToken {
   id:           string;
   name:         string;
@@ -145,3 +174,16 @@ export interface MchadWalletResponse {
   };
 }
 
+// ── Feed endpoints (blocks & oracle) ────────────────────────────────
+
+export async function fetchLatestBlock(): Promise<BlockResponse> {
+  const res = await fetchTimeout(`${BASE_URL}/v1/blocks/latest`);
+  if (!res.ok) throw new Error(`Slowphie /v1/blocks/latest HTTP ${res.status}`);
+  return res.json() as Promise<BlockResponse>;
+}
+
+export async function fetchOraclePrices(): Promise<OracleResponse> {
+  const res = await fetchTimeout(`${BASE_URL}/v1/oracle/all`);
+  if (!res.ok) throw new Error(`Slowphie /v1/oracle/all HTTP ${res.status}`);
+  return res.json() as Promise<OracleResponse>;
+}

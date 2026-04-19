@@ -1,9 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '../store';
 import { Activity, Blocks, Wifi, WifiOff } from 'lucide-react';
-import { useBlockFeedConnected, useBlockFeedStream } from '../hooks/useWebSocket';
-import type { StreamEvent } from '../hooks/useWebSocket';
-import { useCallback } from 'react';
+import { useBlockFeedConnected } from '../hooks/useWebSocket';
 import { useTranslation } from 'react-i18next';
 
 export function StatsBar() {
@@ -11,8 +9,6 @@ export function StatsBar() {
   const latestBlock = useAppStore((s) => s.latestBlock);
   const connected   = useBlockFeedConnected();
   const { t } = useTranslation();
-
-  useBlockFeedStream(useCallback((_event: StreamEvent) => {}, []));
 
   const connectionEl = (
     <div className="flex items-center gap-1.5">
