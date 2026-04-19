@@ -187,3 +187,56 @@ export async function fetchOraclePrices(): Promise<OracleResponse> {
   if (!res.ok) throw new Error(`Slowphie /v1/oracle/all HTTP ${res.status}`);
   return res.json() as Promise<OracleResponse>;
 }
+
+// ── /markets endpoint ────────────────────────────────────────────────
+export interface MarketRoute {
+  path:             string[];   // e.g. ["BTC", "BLUE", "MOTO"]
+  price:            string;     // BTC per token (this route's price)
+  feeAdjustedPrice: string;
+  totalFeePct:      number;
+  source:           string;     // "nativeswap" | "nativeswap+motoswap"
+  confidence:       number;     // 1 = direct, 0.8 = via hop
+}
+
+export interface MarketLastTrade {
+  exchange:  string;
+  token0:    string;
+  token1:    string;
+  amountIn:  string;
+  amountOut: string;
+  price:     string;
+  timestamp: string;
+}
+
+export interface MarketData {
+  id:         string;        // contract address (matches tokenContract in positions)
+  name:       string;
+  symbol:     string;
+  /** Best-route price in BTC (routes[0].price = lowest/best price for buyer). "0" = no market */
+  price:      string;
+  marketcap:  string;        // in BTC
+  lastTrade:  MarketLastTrade | null;
+  routes:     MarketRoute[]; // sorted: routes[0] = lowest price (best for buyer)
+  spread:     string;
+  rawSpread:  string;
+  arbitrage:  boolean;
+}
+
+export interface MarketsResponse {
+  markets:       MarketData[];
+  total:         number;
+  fetchedAt:     number;     // Unix ms
+  nextRefreshAt: number;     // Unix ms (~5 min refresh cycle)
+}
+
+export async function fetchMarkets(): Promise<MarketsResponse> {
+  const res = await fetchTimeout(`${BASE_URL}/markets`);
+  if (!res.ok) throw new Error(`Slowphie /markets HTTP ${res.status}`);
+  return res.json() as Promise<MarketsResponse>;
+}
+
+export async function fetchMarketBySymbol(symbol: string): Promise<MarketData> {
+  const res = await fetchTimeout(`${BASE_URL}/markets/${symbol}`);
+  if (!res.ok) throw new Error(`Slowphie /markets/${symbol} HTTP ${res.status}`);
+  return res.json() as Promise<MarketData>;
+}

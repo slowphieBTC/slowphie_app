@@ -8,6 +8,7 @@ import { PositionCard } from '../components/PositionCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { TokenTotalsCard } from '../components/TokenTotalsCard';
+import { TokenEvolutionsCard } from '../components/TokenEvolutionsCard';
 import type { Position } from '../types';
 
 type FilterType = 'stake' | 'harvest' | 'lp' | 'token' | 'custom';
@@ -95,6 +96,7 @@ export default function OpStrat() {
           <p className="text-gray-400 max-w-md mx-auto text-sm">{t('tracks.heroSubtitle')}</p>
         </motion.div>
 
+        {positions.length > 0 && <TokenEvolutionsCard />}
         {positions.length > 0 && <TokenTotalsCard positions={positions} />}
 
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
