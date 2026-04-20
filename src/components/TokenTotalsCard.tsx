@@ -16,22 +16,22 @@ const STATIC_TOKEN_ICONS: Record<string, string> = {
 
 const TOKEN_ORDER = ['BTC', 'MOTO', 'PILL', 'SAT', 'SWAP', 'BLUE', 'PEPE', 'UNGA', 'MCHAD'];
 
-const TOKEN_CONFIG: Record<string, { color: string; bg: string; border: string; gradient?: string[] }> = {
-  BTC:  { color: 'text-orange-400',  bg: 'bg-orange-500/10',   border: 'border-orange-500/20'   },
-  MOTO: { color: 'text-white',        bg: 'bg-white/5',          border: 'border-white/20'          },
-  PILL: { color: 'text-[#e64900]',   bg: 'bg-[#e64900]/10',    border: 'border-[#e64900]/20'    },
-  SAT:  { color: 'text-yellow-400',  bg: 'bg-yellow-500/10',   border: 'border-yellow-500/20'   },
-  SWAP: { color: 'text-blue-400',    bg: 'bg-blue-500/10',     border: 'border-blue-500/20'     },
-  BLUE: { color: 'text-[#0577c0]',   bg: 'bg-[#0577c0]/10',    border: 'border-[#0577c0]/20'    },
-  PEPE: { color: 'text-[#4c9641]',   bg: 'bg-[#4c9641]/10',    border: 'border-[#4c9641]/20'    },
-  UNGA: { color: 'text-[#b85c1b]',   bg: 'bg-[#b85c1b]/10',    border: 'border-[#b85c1b]/20'    },
-  MCHAD: { color: 'text-[#75bbdf]', bg: 'bg-white/5', border: 'border-transparent',
+const TOKEN_CONFIG: Record<string, { color: string; bg: string; border: string; hex: string; gradient?: string[] }> = {
+  BTC:  { color: 'text-orange-400',  bg: 'bg-orange-500/10',   border: 'border-orange-500/20',  hex: '#fb923c' },
+  MOTO: { color: 'text-white',        bg: 'bg-white/5',          border: 'border-white/20',        hex: '#ffffff' },
+  PILL: { color: 'text-[#e64900]',   bg: 'bg-[#e64900]/10',    border: 'border-[#e64900]/20',   hex: '#e64900' },
+  SAT:  { color: 'text-yellow-400',  bg: 'bg-yellow-500/10',   border: 'border-yellow-500/20',  hex: '#facc15' },
+  SWAP: { color: 'text-blue-400',    bg: 'bg-blue-500/10',     border: 'border-blue-500/20',    hex: '#60a5fa' },
+  BLUE: { color: 'text-[#0577c0]',   bg: 'bg-[#0577c0]/10',    border: 'border-[#0577c0]/20',   hex: '#0577c0' },
+  PEPE: { color: 'text-[#4c9641]',   bg: 'bg-[#4c9641]/10',    border: 'border-[#4c9641]/20',   hex: '#4c9641' },
+  UNGA: { color: 'text-[#b85c1b]',   bg: 'bg-[#b85c1b]/10',    border: 'border-[#b85c1b]/20',   hex: '#b85c1b' },
+  MCHAD: { color: 'text-[#75bbdf]', bg: 'bg-white/5', border: 'border-transparent', hex: '#75bbdf',
     gradient: ['#75bbdf80','#a260f980','#d15ba480','#e7595380','#e9764780','#e8ad5580','#e9d56880'] },
 };
 
-const TOKEN_CONFIG_BY_ADDRESS: Record<string, { color: string; bg: string; border: string; gradient?: string[] }> = {
-  '0x6e48cb5d68ecf9802f7d3b4d44e51db1d513190960dc3b2b1d6d24196d1c9005': { color: 'text-[#4c9641]', bg: 'bg-[#4c9641]/10', border: 'border-[#4c9641]/20' },
-  '0xe709ccf7532424262bcb200e9aae6908871bae2b91888215cdc1e02c5a626b2a': { color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10' },
+const TOKEN_CONFIG_BY_ADDRESS: Record<string, { color: string; bg: string; border: string; hex: string; gradient?: string[] }> = {
+  '0x6e48cb5d68ecf9802f7d3b4d44e51db1d513190960dc3b2b1d6d24196d1c9005': { color: 'text-[#4c9641]', bg: 'bg-[#4c9641]/10', border: 'border-[#4c9641]/20', hex: '#4c9641' },
+  '0xe709ccf7532424262bcb200e9aae6908871bae2b91888215cdc1e02c5a626b2a': { color: 'text-gray-400', bg: 'bg-white/5', border: 'border-white/10', hex: '#9ca3af' },
 };
 
 function getTokenConfig(symbol: string, tokenContract?: string) {
@@ -39,7 +39,13 @@ function getTokenConfig(symbol: string, tokenContract?: string) {
     const byAddr = TOKEN_CONFIG_BY_ADDRESS[tokenContract.toLowerCase()];
     if (byAddr) return byAddr;
   }
-  return TOKEN_CONFIG[symbol] ?? { color: 'text-dark-300', bg: 'bg-dark-700/30', border: 'border-dark-600/30' };
+  return TOKEN_CONFIG[symbol] ?? { color: 'text-dark-300', bg: 'bg-dark-700/30', border: 'border-dark-600/30', hex: '#6b7280' };
+}
+
+function getSelectedStyle(hex: string): React.CSSProperties {
+  return {
+    boxShadow: `0 0 0 2px ${hex}99, 0 10px 15px -3px ${hex}1a`,
+  };
 }
 
 function getCardStyle(cfg: { bg: string; gradient?: string[] }): React.CSSProperties | undefined {
@@ -155,9 +161,8 @@ function fmt(n: number, symbol: string): string {
 }
 
 function SummaryCard({ t: tFn, cfg, t: _t, ...rest }: { t: ReturnType<typeof useTranslation>['t'] } & { cfg: ReturnType<typeof getTokenConfig> } & { tok: TokenTotal }) { return null; }
-
 // Separate component to call hook properly
-function SummaryCardItem({ tok }: { tok: TokenTotal }) {
+function SummaryCardItem({ tok, isSelected, onSelect }: { tok: TokenTotal; isSelected: boolean; onSelect: () => void }) {
   const { t } = useTranslation();
   const cfg = getTokenConfig(tok.symbol, tok.tokenContract);
   const groups = groupByType(tok.breakdown);
@@ -174,7 +179,14 @@ function SummaryCardItem({ tok }: { tok: TokenTotal }) {
     lp: 'bg-blue-500/20 text-blue-400',
   };
   return (
-    <div className={`rounded-xl border ${cfg.border} ${cfg.bg} p-4 flex flex-col gap-3`} style={getCardStyle(cfg)}>
+    <div onClick={onSelect}
+      className={`cursor-pointer rounded-xl border p-4 flex flex-col gap-3 transition-all duration-150 ${
+        isSelected
+          ? `${cfg.border}`
+          : `${cfg.border} ${cfg.bg} hover:border-dark-500/60`
+      }`}
+      style={isSelected ? getSelectedStyle(cfg.hex) : getCardStyle(cfg)}
+    >
       <div className="flex items-center gap-2">
         <div className={`w-9 h-9 rounded-full ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden`}>
           <TokenIcon symbol={tok.symbol} contractAddress={tok.tokenContract} color={cfg.color} />
@@ -196,7 +208,7 @@ function SummaryCardItem({ tok }: { tok: TokenTotal }) {
   );
 }
 
-function DetailCardItem({ tok, walletLabel }: { tok: TokenTotal; walletLabel: Map<string, string> }) {
+function DetailCardItem({ tok, walletLabel, isSelected, onSelect }: { tok: TokenTotal; walletLabel: Map<string, string>; isSelected: boolean; onSelect: () => void }) {
   const { t } = useTranslation();
   const cfg = getTokenConfig(tok.symbol, tok.tokenContract);
   const walletMap = new Map<string, TokenBreakdown[]>();
@@ -218,7 +230,14 @@ function DetailCardItem({ tok, walletLabel }: { tok: TokenTotal; walletLabel: Ma
     lp: 'bg-blue-500/20 text-blue-400',
   };
   return (
-    <div className={`rounded-xl border ${cfg.border} ${cfg.bg} flex flex-col gap-0 overflow-hidden`} style={getCardStyle(cfg)}>
+    <div onClick={onSelect}
+      className={`cursor-pointer rounded-xl border flex flex-col gap-0 overflow-hidden transition-all duration-150 ${
+        isSelected
+          ? `${cfg.border}`
+          : `${cfg.border} ${cfg.bg} hover:border-dark-500/60`
+      }`}
+      style={isSelected ? getSelectedStyle(cfg.hex) : getCardStyle(cfg)}
+    >
       <div className={`flex items-center gap-2 px-4 py-3 border-b ${cfg.border}`}>
         <div className={`w-9 h-9 rounded-full ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden`}>
           <TokenIcon symbol={tok.symbol} contractAddress={tok.tokenContract} color={cfg.color} />
@@ -258,9 +277,12 @@ function DetailCardItem({ tok, walletLabel }: { tok: TokenTotal; walletLabel: Ma
   );
 }
 
-interface Props { positions: Position[] }
-
-export function TokenTotalsCard({ positions }: Props) {
+interface Props {
+  positions: Position[];
+  selectedToken: string | null;
+  onSelectToken: (addr: string | null) => void;
+}
+export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Props) {
   const { t } = useTranslation();
   const totals     = aggregateTokens(positions);
   const savedAddrs = useAppStore((s) => s.addresses);
@@ -270,6 +292,9 @@ export function TokenTotalsCard({ positions }: Props) {
 
   const walletLabel = new Map<string, string>();
   for (const a of savedAddrs) { walletLabel.set(a.address.toLowerCase(), a.label || a.address.slice(0, 8) + '\u2026'); }
+
+  // Resolve BTC address for matching with selectedToken
+  const BTC_NATIVE_ADDR = '__btc_native__';
 
   return (
     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
@@ -287,11 +312,17 @@ export function TokenTotalsCard({ positions }: Props) {
       <AnimatePresence mode="wait">
         <motion.div key={detailMode ? 'detail' : 'summary'} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}
           className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-          {totals.map(tok =>
-            detailMode
-              ? <DetailCardItem key={tok.tokenContract || tok.symbol} tok={tok} walletLabel={walletLabel} />
-              : <SummaryCardItem key={tok.tokenContract || tok.symbol} tok={tok} />
-          )}
+          {totals.map(tok => {
+            const tokAddr = tok.symbol === 'BTC'
+              ? BTC_NATIVE_ADDR
+              : (tok.tokenContract?.toLowerCase() ?? '');
+            const isSelected = selectedToken !== null && tokAddr === selectedToken;
+            const handleSelect = () => onSelectToken(isSelected ? null : tokAddr);
+
+            return detailMode
+              ? <DetailCardItem key={tok.tokenContract || tok.symbol} tok={tok} walletLabel={walletLabel} isSelected={isSelected} onSelect={handleSelect} />
+              : <SummaryCardItem key={tok.tokenContract || tok.symbol} tok={tok} isSelected={isSelected} onSelect={handleSelect} />;
+          })}
         </motion.div>
       </AnimatePresence>
     </motion.div>

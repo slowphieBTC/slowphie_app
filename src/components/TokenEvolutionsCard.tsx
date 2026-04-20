@@ -8,9 +8,10 @@ import {
   type Time,
 } from 'lightweight-charts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Database, Loader2, AlertCircle, Eye, EyeOff, RotateCcw, ChevronDown } from 'lucide-react';
+import { TrendingUp, Database, Loader2, AlertCircle, Eye, EyeOff, RotateCcw, ChevronDown, X } from 'lucide-react';
 import { usePortfolioHistory, type TimeRange, type ViewMode, type ChartSeries } from '../hooks/usePortfolioHistory';
 import { useTokenVisibility, type TokenVisibilityEntry } from '../hooks/useTokenVisibility';
+import { BTC_NATIVE } from '../lib/coreTokens';
 import { clearAllSnapshots } from '../lib/snapshotStore';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -73,14 +74,45 @@ function TimeRangeDropdown({ value, onChange }: { value: TimeRange; onChange: (r
 }
 
 
-const VIEW_MODES: { id: ViewMode; label: string }[] = [
-  { id: 'total_btc',  label: 'Total BTC'  },
-  { id: 'total_usd',  label: 'Total USD'  },
-  { id: 'per_token',  label: 'Per Token'  },
-  { id: 'per_wallet', label: 'Per Wallet' },
-];
+type Unit      = 'btc' | 'usd' | 'amount';
+type Breakdown = 'none' | 'per_token' | 'per_wallet';
+
+const UNIT_LABELS:      Record<Unit,      string> = { btc: '₿ BTC', usd: '$ USD', amount: '# Token' };
+const BREAKDOWN_LABELS: Record<Breakdown, string> = { none: '', per_token: 'Per Token', per_wallet: 'Per Wallet' };
+
+function deriveViewMode(unit: Unit, breakdown: Breakdown, hasSelection: boolean): [ViewMode, boolean] {
+  if (breakdown === 'per_wallet') {
+    if (unit === 'usd') return ['per_wallet_usd', false];
+    return ['per_wallet', false];
+  }
+  if (breakdown === 'per_token' || hasSelection) {
+    if (unit === 'usd')    return ['per_token_usd', false];
+    if (unit === 'amount') return ['per_token',     true];
+    return ['per_token', false]; // btc
+  }
+  // breakdown === 'none'
+  if (unit === 'usd')    return ['total_usd', false];
+  if (unit === 'amount') return ['per_token', true];
+  return ['total_btc', false]; // btc
+}
 
 const CHART_HEIGHT = 240;
+
+const TOKEN_HEX_MAP: Record<string, string> = {
+  BTC:  '#fb923c',
+  MOTO: '#e0e0e0',
+  PILL: '#e64900',
+  SAT:  '#facc15',
+  SWAP: '#60a5fa',
+  BLUE: '#0577c0',
+  PEPE: '#4c9641',
+  UNGA: '#b85c1b',
+  MCHAD:'#75bbdf',
+};
+
+function getTokenHex(symbol: string): string {
+  return TOKEN_HEX_MAP[symbol.toUpperCase()] ?? '#6b7280';
+}
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -311,18 +343,30 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-function TokenEvolutionsCardInner() {
-  const [timeRange,     setTimeRange]     = useState<TimeRange>('24H');
-  const [viewMode,      setViewMode]      = useState<ViewMode>('total_btc');
-  const [filterOpen,    setFilterOpen]    = useState(false);
-  const [clearing,      setClearing]      = useState(false);
-  const [showRawAmount, setShowRawAmount] = useState(false);
+interface TokenEvolutionsCardProps {
+  selectedToken: string | null;
+  onClearSelection: () => void;
+  visibility: {
+    isVisible: (address: string) => boolean;
+    showDiscovered: boolean;
+    toggleToken: (address: string) => void;
+    toggleShowDiscovered: () => void;
+    reset: () => void;
+    buildEntries: (tokenIndex: Array<{ address: string; symbol: string }>) => import('../hooks/useTokenVisibility').TokenVisibilityEntry[];
+  };
+}
 
-  const visibility = useTokenVisibility();
+function TokenEvolutionsCardInner({ selectedToken, onClearSelection, visibility }: TokenEvolutionsCardProps) {
+  const [timeRange,  setTimeRange]  = useState<TimeRange>('24H');
+  const [unit,       setUnit]       = useState<Unit>('btc');
+  const [breakdown,  setBreakdown]  = useState<Breakdown>('none');
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [clearing,   setClearing]   = useState(false);
+
+  const [viewMode, showRawAmount] = deriveViewMode(unit, breakdown, !!selectedToken);
 
   const { series, isSaving, lastSavedTs, stats, error, tokenIndex, reload } =
     usePortfolioHistory(timeRange, viewMode, visibility.isVisible, showRawAmount);
-
   // Build token entries for the filter panel (only tokens that have appeared in history)
   const filterEntries = visibility.buildEntries(tokenIndex);
 
@@ -339,8 +383,16 @@ function TokenEvolutionsCardInner() {
   const stableIsVisible = visibility.isVisible;
   useEffect(() => { reload(); }, [stableIsVisible, reload]);
 
-  // Count hidden discovered tokens for eye button badge
-  const hiddenDiscoveredCount = filterEntries.filter(e => !e.isCore && !e.isVisible).length;
+  // Reset breakdown when a card is selected (single-token mode overrides breakdown)
+  useEffect(() => { if (selectedToken) setBreakdown('none'); }, [selectedToken]);
+
+  // Count visible tokens in chart for badge
+  const visibleInChart = selectedToken ? 1 : filterEntries.filter(e => e.isVisible).length;
+
+  // Resolve symbol for selected token chip
+  const selectedSymbol = selectedToken
+    ? (selectedToken === BTC_NATIVE ? 'BTC' : filterEntries.find(e => e.address === selectedToken)?.symbol ?? selectedToken)
+    : null;
 
   return (
     <motion.div
@@ -363,35 +415,54 @@ function TokenEvolutionsCardInner() {
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Raw amount toggle — only in Per Token view */}
-          {viewMode === 'per_token' && (
-            <div className="flex items-center gap-0.5 bg-dark-900/60 rounded-lg p-0.5">
-              <button
-                onClick={() => setShowRawAmount(false)}
-                title="Show value in BTC"
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                  !showRawAmount
-                    ? 'bg-brand-500/30 text-brand-300 border border-brand-500/40'
-                    : 'text-dark-400 hover:text-dark-200'
-                }`}
-              >
-                ₿ Value
-              </button>
-              <button
-                onClick={() => setShowRawAmount(true)}
-                title="Show raw token amount"
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                  showRawAmount
-                    ? 'bg-brand-500/30 text-brand-300 border border-brand-500/40'
-                    : 'text-dark-400 hover:text-dark-200'
-                }`}
-              >
-                # Amount
-              </button>
-            </div>
-          )}
+          {/* ── UNIT group ── */}
+          <div className="flex items-center gap-0.5 bg-dark-900/60 rounded-lg p-0.5">
+            {(['btc', 'usd', 'amount'] as Unit[]).map(u => {
+              const isDisabled = u === 'amount' && breakdown === 'per_wallet';
+              return (
+                <button
+                  key={u}
+                  disabled={isDisabled}
+                  onClick={() => !isDisabled && setUnit(u)}
+                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                    isDisabled
+                      ? 'text-dark-700 cursor-not-allowed'
+                      : unit === u
+                        ? 'text-white bg-dark-700/60'
+                        : 'text-dark-400 hover:text-dark-200'
+                  }`}
+                >
+                  {UNIT_LABELS[u]}
+                </button>
+              );
+            })}
+          </div>
 
-          {/* Eye / filter toggle button */}
+          {/* ── Divider ── */}
+          <div className="w-px h-4 bg-dark-600/60" />
+
+          {/* ── Breakdown group ── */}
+          <div className="flex items-center gap-0.5 bg-dark-900/60 rounded-lg p-0.5">
+            {(['per_token', 'per_wallet'] as Breakdown[]).map(b => (
+              <button
+                key={b}
+                onClick={() => {
+                  const next = breakdown === b ? 'none' : b;
+                  setBreakdown(next);
+                  if (b === 'per_wallet' && next === 'per_wallet' && unit === 'amount') setUnit('btc');
+                }}
+                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                  breakdown === b || (b === 'per_token' && !!selectedToken)
+                    ? 'text-white bg-dark-700/60'
+                    : 'text-dark-400 hover:text-dark-200'
+                }`}
+              >
+                {BREAKDOWN_LABELS[b]}
+              </button>
+            ))}
+          </div>
+
+          {/* ── Eye / filter toggle ── */}
           <button
             onClick={() => setFilterOpen(v => !v)}
             title={filterOpen ? 'Hide token filter' : 'Show token filter'}
@@ -403,31 +474,25 @@ function TokenEvolutionsCardInner() {
           >
             {filterOpen ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
             Tokens
-            {hiddenDiscoveredCount > 0 && !filterOpen && (
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-brand-500 text-white text-[9px] font-bold flex items-center justify-center">
-                {hiddenDiscoveredCount > 9 ? '9+' : hiddenDiscoveredCount}
+            {!filterOpen && (
+              <span
+                className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${selectedToken ? ''  : 'text-white'}`}
+                style={{
+                backgroundColor: selectedToken
+                  ? `${getTokenHex(selectedSymbol ?? '')}40`
+                  : '#f97316',
+                boxShadow: selectedToken
+                  ? `0 0 0 1px ${getTokenHex(selectedSymbol ?? '')}70`
+                  : undefined,
+                color: selectedToken ? getTokenHex(selectedSymbol ?? '') : 'white',
+              }}
+              >
+                {visibleInChart}
               </span>
             )}
           </button>
 
-          {/* View mode toggle */}
-          <div className="flex items-center gap-1 bg-dark-900/60 rounded-lg p-0.5">
-            {VIEW_MODES.map(v => (
-              <button
-                key={v.id}
-                onClick={() => setViewMode(v.id)}
-                className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
-                  viewMode === v.id
-                    ? 'bg-brand-500/30 text-brand-300 border border-brand-500/40'
-                    : 'text-dark-400 hover:text-dark-200'
-                }`}
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Time range selector */}
+          {/* ── Time range selector ── */}
           <TimeRangeDropdown value={timeRange} onChange={setTimeRange} />
         </div>
       </div>
@@ -444,6 +509,25 @@ function TokenEvolutionsCardInner() {
           />
         )}
       </AnimatePresence>
+
+      {/* Selected token chip */}
+      {selectedSymbol && (
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-[11px] text-dark-500 font-medium">Showing:</span>
+          <button
+            onClick={onClearSelection}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
+            style={{
+              backgroundColor: `${getTokenHex(selectedSymbol ?? '')}20`,
+              border: `1px solid ${getTokenHex(selectedSymbol ?? '')}50`,
+              color: getTokenHex(selectedSymbol ?? ''),
+            }}
+          >
+            {selectedSymbol}
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
 
       {/* Error */}
       {error && (

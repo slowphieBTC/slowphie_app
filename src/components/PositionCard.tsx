@@ -85,15 +85,19 @@ function truncate(addr: string) {
 
 function fmt(n: number): string {
   if (n === 0) return '\u2014';
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(2) + 'M';
-  if (n >= 1_000)    return (n / 1_000).toFixed(2) + 'K';
+  if (n >= 1_000_000_000_000) return (n / 1_000_000_000_000).toFixed(2) + 'T';
+  if (n >= 1_000_000_000)    return (n / 1_000_000_000).toFixed(2) + 'B';
+  if (n >= 1_000_000)        return (n / 1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000)            return (n / 1_000).toFixed(2) + 'K';
   return n.toFixed(4);
 }
 
 function fmtLp(n: number): string {
   if (n === 0) return '\u2014';
-  if (n >= 1_000_000) return (n / 1_000_000).toFixed(4) + 'M';
-  if (n >= 1_000)    return (n / 1_000).toFixed(6) + 'K';
+  if (n >= 1_000_000_000_000) return (n / 1_000_000_000_000).toFixed(4) + 'T';
+  if (n >= 1_000_000_000)    return (n / 1_000_000_000).toFixed(4) + 'B';
+  if (n >= 1_000_000)        return (n / 1_000_000).toFixed(4) + 'M';
+  if (n >= 1_000)            return (n / 1_000).toFixed(6) + 'K';
   return n.toFixed(6);
 }
 

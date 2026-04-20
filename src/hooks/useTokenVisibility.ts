@@ -12,7 +12,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { isCore, BTC_NATIVE } from '../lib/coreTokens';
+import { isCore, BTC_NATIVE, STATIC_CORE_ADDRESSES } from '../lib/coreTokens';
 
 const LS_KEY = 'slowphie-token-visibility';
 
@@ -97,10 +97,29 @@ export function useTokenVisibility() {
       };
     });
   }, []);
-
   /** Reset all overrides and master toggle to defaults. */
   const reset = useCallback(() => {
     setState(DEFAULT_STATE);
+  }, []);
+
+  /** Select only one token — hide all others, show only the given address.
+   *  Sets overrides so only the given address is visible. */
+  const selectOnly = useCallback((address: string) => {
+    setState(prev => {
+      const norm = address.toLowerCase();
+      // Build overrides: hide everything except the selected token
+      const overrides: Record<string, boolean> = {};
+      // First, set all known core tokens to false
+      for (const coreAddr of STATIC_CORE_ADDRESSES) {
+        overrides[coreAddr] = coreAddr === norm;
+      }
+      // Ensure the selected token is explicitly visible
+      overrides[norm] = true;
+      return {
+        showDiscovered: false,
+        overrides,
+      };
+    });
   }, []);
 
   /**
@@ -162,6 +181,7 @@ export function useTokenVisibility() {
     isVisible,
     toggleToken,
     reset,
+    selectOnly,
     buildEntries,
   };
 }

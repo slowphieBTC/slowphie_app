@@ -9,6 +9,8 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { TokenTotalsCard } from '../components/TokenTotalsCard';
 import { TokenEvolutionsCard } from '../components/TokenEvolutionsCard';
+import { useTokenVisibility } from '../hooks/useTokenVisibility';
+import { BTC_NATIVE } from '../lib/coreTokens';
 import type { Position } from '../types';
 
 type FilterType = 'stake' | 'harvest' | 'lp' | 'token' | 'custom';
@@ -56,6 +58,8 @@ export default function OpStrat() {
   const setSettingsOpen = useAppStore((s) => s.setSettingsOpen);
   const { positions, loading, refreshing, error, refresh } = usePositions(addresses.map(a => a.address));
   const [activeFilters, setActiveFilters] = useState<Set<FilterType>>(new Set());
+  const [selectedToken, setSelectedToken] = useState<string | null>(null);
+  const visibility = useTokenVisibility();
 
   const toggleFilter = (type: FilterType) => {
     setActiveFilters(prev => { const next = new Set(prev); next.has(type) ? next.delete(type) : next.add(type); return next; });
@@ -96,17 +100,17 @@ export default function OpStrat() {
           <p className="text-gray-400 max-w-md mx-auto text-sm">{t('tracks.heroSubtitle')}</p>
         </motion.div>
 
-        {positions.length > 0 && <TokenEvolutionsCard />}
-        {positions.length > 0 && <TokenTotalsCard positions={positions} />}
+        {positions.length > 0 && <TokenEvolutionsCard selectedToken={selectedToken} onClearSelection={() => { setSelectedToken(null); visibility.reset(); }} visibility={visibility} />}
+        {positions.length > 0 && <TokenTotalsCard positions={positions} selectedToken={selectedToken} onSelectToken={(addr) => { if (addr) { setSelectedToken(addr); visibility.selectOnly(addr); } else { setSelectedToken(null); visibility.reset(); } }} />}
 
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-white"><span className="text-gradient">{t('tracks.sectionTitle')}</span></h1>
             <p className="text-sm text-gray-500 mt-1">
               {addresses.length === 1 ? t('tracks.addressCount_one', { count: 1 }) : t('tracks.addressCount_other', { count: addresses.length })}
-              {' \u00b7 '}
+              {' · '}
               {positions.length === 1 ? t('tracks.positionCount_one', { count: 1 }) : t('tracks.positionCount_other', { count: positions.length })}
-              {hasFilter && <span className="ml-2 text-brand-400 font-medium">\u00b7 {t('tracks.shownCount', { count: positionsByAddress.reduce((s, g) => s + g.filtered.length, 0) })}</span>}
+              {hasFilter && <span className="ml-2 text-brand-400 font-medium">· {t('tracks.shownCount', { count: positionsByAddress.reduce((s, g) => s + g.filtered.length, 0) })}</span>}
             </p>
           </div>
           <div className="flex items-center gap-2 flex-wrap">

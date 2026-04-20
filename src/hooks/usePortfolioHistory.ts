@@ -20,7 +20,7 @@ import { decodeSnapshot, type SnapshotPayload } from '../lib/snapshotEncoder';
 // ── Public types ──────────────────────────────────────────────────────────────
 
 export type TimeRange = '1H' | '6H' | '24H' | '7D' | 'ALL';
-export type ViewMode  = 'total_btc' | 'total_usd' | 'per_token' | 'per_wallet';
+export type ViewMode  = 'total_btc' | 'total_usd' | 'per_token' | 'per_token_usd' | 'per_wallet' | 'per_wallet_usd';
 
 export interface ChartPoint {
   time:  number;  // unix seconds
@@ -163,6 +163,38 @@ function buildSeries(
     return result;
   }
 
+  // ── Per token (USD) ──
+  if (viewMode === 'per_token_usd') {
+    const tokenIdxSet = new Set<number>();
+    for (const snap of snapshots) {
+      for (const p of snap.prices) {
+        if (visibleTokenIdx.has(p.tokenIdx)) tokenIdxSet.add(p.tokenIdx);
+      }
+    }
+    const result: ChartSeries[] = [];
+    let ci = 0;
+    for (const tokenIdx of tokenIdxSet) {
+      const entry = tokenByIdx.get(tokenIdx);
+      if (!entry) continue;
+      const data: ChartPoint[] = [];
+      for (const snap of snapshots) {
+        let tokenTotal = 0;
+        for (const h of snap.holdings) {
+          if (h.tokenIdx === tokenIdx) tokenTotal += h.amount;
+        }
+        const priceEntry = snap.prices.find(p => p.tokenIdx === tokenIdx);
+        if (!priceEntry) continue;
+        const valueUsd = tokenTotal * priceEntry.priceBtc * (snap.btcUsdCents / 100);
+        if (valueUsd > 0) data.push({ time: snap.timestamp, value: valueUsd });
+      }
+      if (data.length > 0) {
+        result.push({ id: entry.address, label: entry.symbol, color: getTokenColor(entry.symbol, ci), data });
+        ci++;
+      }
+    }
+    return result;
+  }
+
   // ── Per wallet ──
   if (viewMode === 'per_wallet') {
     const walletIdxSet = new Set<number>();
@@ -201,6 +233,44 @@ function buildSeries(
     }
     return result;
   }
+
+  // ── Per wallet (USD) ──
+  if (viewMode === 'per_wallet_usd') {
+    const walletIdxSet = new Set<number>();
+    for (const snap of snapshots) {
+      for (const h of snap.holdings) {
+        if (visibleTokenIdx.has(h.tokenIdx)) walletIdxSet.add(h.walletIdx);
+      }
+    }
+    const result: ChartSeries[] = [];
+    let ci = 0;
+    for (const walletIdx of walletIdxSet) {
+      const entry = walletByIdx.get(walletIdx);
+      const data: ChartPoint[] = [];
+      for (const snap of snapshots) {
+        const priceByIdx = new Map<number, number>(snap.prices.map(p => [p.tokenIdx, p.priceBtc]));
+        let walletTotal = 0;
+        for (const h of snap.holdings) {
+          if (h.walletIdx === walletIdx && visibleTokenIdx.has(h.tokenIdx)) {
+            walletTotal += h.amount * (priceByIdx.get(h.tokenIdx) ?? 0);
+          }
+        }
+        const valueUsd = walletTotal * (snap.btcUsdCents / 100);
+        if (valueUsd > 0) data.push({ time: snap.timestamp, value: valueUsd });
+      }
+      if (data.length > 0) {
+        result.push({
+          id:    entry?.address ?? String(walletIdx),
+          label: entry?.label  ?? `Wallet ${walletIdx}`,
+          color: FALLBACK_COLORS[ci % FALLBACK_COLORS.length],
+          data,
+        });
+        ci++;
+      }
+    }
+    return result;
+  }
+
 
   return [];
 }
