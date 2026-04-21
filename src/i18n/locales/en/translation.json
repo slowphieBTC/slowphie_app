@@ -388,5 +388,20 @@
     "statusSaved": "✓ Saved",
     "placeholder": "Write your answers, thoughts, or notes here. Auto-saved to your browser.",
     "footer": "{{count}} characters • auto-saved locally"
+  },
+  "market": {
+    "loading": "Loading market data…",
+    "lastTrade": "Last Trade",
+    "pair": "Pair",
+    "price": "Price",
+    "amountIn": "Amount In",
+    "amountOut": "Amount Out",
+    "block": "Block",
+    "time": "Time",
+    "bestRoute": "Best Route",
+    "allRoutes": "All Routes",
+    "marketcap": "Market Cap",
+    "spread": "Spread",
+    "noDataBtc": "No market data available for BTC"
   }
 }

@@ -386,7 +386,21 @@
     "statusEmpty": "Commencez à écrire...",
     "statusSaving": "Sauvegarde auto...",
     "statusSaved": "✓ Sauvegardé",
-    "placeholder": "Écrivez vos réponses, réflexions ou notes ici. Sauvegarde automatique dans votre navigateur.",
     "footer": "{{count}} caractères • sauvegardé localement"
+  },
+  "market": {
+    "loading": "Chargement des données marché…",
+    "lastTrade": "Dernier échange",
+    "pair": "Paire",
+    "price": "Prix",
+    "amountIn": "Quantité entrée",
+    "amountOut": "Quantité sortie",
+    "block": "Bloc",
+    "time": "Heure",
+    "bestRoute": "Meilleure route",
+    "allRoutes": "Toutes les routes",
+    "marketcap": "Capitalisation",
+    "spread": "Spread",
+    "noDataBtc": "Aucune donnée marché pour BTC"
   }
 }

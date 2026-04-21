@@ -196,6 +196,9 @@ export interface MarketRoute {
   totalFeePct:      number;
   source:           string;     // "nativeswap" | "nativeswap+motoswap"
   confidence:       number;     // 1 = direct, 0.8 = via hop
+  trust?:           string;     // "OK" | "WARNING" | "UNKNOWN"
+  pathAddresses?:   string[];
+  tokenTaxes?:      Array<{ symbol: string; address: string; taxPct: number; direction: string }>;
 }
 
 export interface MarketLastTrade {
@@ -206,6 +209,8 @@ export interface MarketLastTrade {
   amountOut: string;
   price:     string;
   timestamp: string;
+  blockHeight?: string;
+  trust?:     string;
 }
 
 export interface MarketData {
@@ -236,7 +241,13 @@ export async function fetchMarkets(): Promise<MarketsResponse> {
 }
 
 export async function fetchMarketBySymbol(symbol: string): Promise<MarketData> {
-  const res = await fetchTimeout(`${BASE_URL}/markets/${symbol}`);
+  const res = await fetchTimeout(`${BASE_URL}/markets/${encodeURIComponent(symbol)}`);
   if (!res.ok) throw new Error(`Slowphie /markets/${symbol} HTTP ${res.status}`);
+  return res.json() as Promise<MarketData>;
+}
+
+export async function fetchMarketByAddress(address: string): Promise<MarketData> {
+  const res = await fetchTimeout(`${BASE_URL}/markets/${encodeURIComponent(address)}`);
+  if (!res.ok) throw new Error(`Slowphie /markets/${address} HTTP ${res.status}`);
   return res.json() as Promise<MarketData>;
 }

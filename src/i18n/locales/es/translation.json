@@ -388,5 +388,20 @@
     "statusSaved": "✓ Guardado",
     "placeholder": "Escribe tus respuestas, pensamientos o notas aquí. Guardado automáticamente en tu navegador.",
     "footer": "{{count}} caracteres • guardado localmente"
+  },
+  "market": {
+    "loading": "Cargando datos del mercado…",
+    "lastTrade": "Último intercambio",
+    "pair": "Par",
+    "price": "Precio",
+    "amountIn": "Cantidad entrada",
+    "amountOut": "Cantidad salida",
+    "block": "Bloque",
+    "time": "Hora",
+    "bestRoute": "Mejor ruta",
+    "allRoutes": "Todas las rutas",
+    "marketcap": "Capitalización",
+    "spread": "Spread",
+    "noDataBtc": "Sin datos de mercado para BTC"
   }
 }

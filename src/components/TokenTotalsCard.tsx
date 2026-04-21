@@ -7,7 +7,7 @@ import { useAppStore } from '../store';
 import { CONTRACTS } from '../api/opnet';
 import { BTC_NATIVE } from '../lib/coreTokens';
 import { getTokenStyle, getTokenHex, getTokenTailwind } from '../lib/tokenColors';
-
+import { TokenMarketPopup } from './TokenMarketPopup';
 const STATIC_TOKEN_ICONS: Record<string, string> = {
   BTC:   'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
   MOTO:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
@@ -78,10 +78,11 @@ function aggregateTokens(positions: Position[]): TokenTotal[] {
     if (!symbol || amount <= 0) return;
     const sym = symbol.toUpperCase();
     const mapKey = sym === 'BTC' ? BTC_NATIVE : (tokenContract ? tokenContract.toLowerCase() : sym);
-    if (!totals.has(mapKey)) totals.set(mapKey, { symbol: sym, tokenContract, total: 0, breakdown: [] });
+    const effectiveContract = sym === 'BTC' ? undefined : tokenContract;
+    if (!totals.has(mapKey)) totals.set(mapKey, { symbol: sym, tokenContract: effectiveContract, total: 0, breakdown: [] });
     const entry = totals.get(mapKey)!;
     entry.total += amount;
-    entry.breakdown.push({ address: walletAddr, label, amount, type, tokenContract });
+    entry.breakdown.push({ address: walletAddr, label, amount, type, tokenContract: effectiveContract });
   };
   for (const pos of positions) {
     const addr = pos.address;
@@ -248,11 +249,10 @@ function UnitDropdown({ value, onChange }: { value: TotalsUnit; onChange: (u: To
     </div>
   );
 }
-
-// Separate component to call hook properly
-function SummaryCardItem({ tok, isSelected, onSelect, fmtValue }: { tok: TokenTotal; isSelected: boolean; onSelect: () => void; fmtValue: (n: number) => string }) {
+function SummaryCardItem({ tok, isSelected, onSelect, onInfoClick, fmtValue }: { tok: TokenTotal; isSelected: boolean; onSelect: () => void; onInfoClick: () => void; fmtValue: (n: number) => string }) {
   const { t } = useTranslation();
   const cfg = getTokenStyle(tok.tokenContract, tok.symbol);
+  const [hovered, setHovered] = useState(false);
   const groups = groupByType(tok.breakdown);
   const badgeLabel: Record<string, string> = {
     wallet: t('totals.badges.wallet'),
@@ -266,19 +266,26 @@ function SummaryCardItem({ tok, isSelected, onSelect, fmtValue }: { tok: TokenTo
     pending: 'bg-green-500/20 text-green-400',
     lp: 'bg-blue-500/20 text-blue-400',
   };
+  const baseStyle = isSelected ? getSelectedStyle(cfg.hex) : getCardStyle(cfg);
+  const hoverStyle = hovered && !isSelected ? { borderColor: `${cfg.hex}99` } : {};
   return (
     <div onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={`cursor-pointer rounded-xl border p-4 flex flex-col gap-3 transition-all duration-150 ${
         isSelected
           ? `${cfg.border}`
-          : `${cfg.border} ${cfg.bg} hover:border-dark-500/60`
+          : `${cfg.border} ${cfg.bg}`
       }`}
-      style={isSelected ? getSelectedStyle(cfg.hex) : getCardStyle(cfg)}
+      style={{ ...baseStyle, ...hoverStyle }}
     >
       <div className="flex items-center gap-2">
-        <div className={`w-9 h-9 rounded-full ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden`}>
+        <button onClick={(e) => { e.stopPropagation(); onInfoClick(); }}
+          className={`w-9 h-9 rounded-full appearance-none bg-transparent ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-110 transition-transform`}
+          title={t('market.price', 'Market info')}
+          style={isSelected ? getSelectedStyle(cfg.hex) : undefined}>
           <TokenIcon symbol={tok.symbol} contractAddress={tok.tokenContract} color={cfg.color} />
-        </div>
+        </button>
         <div>
           <div className={`text-base font-bold ${cfg.color}`}>{fmtValue(tok.total)}</div>
           <div className="text-xs text-dark-400">{tok.symbol}</div>
@@ -296,9 +303,10 @@ function SummaryCardItem({ tok, isSelected, onSelect, fmtValue }: { tok: TokenTo
   );
 }
 
-function DetailCardItem({ tok, walletLabel, isSelected, onSelect, fmtValue }: { tok: TokenTotal; walletLabel: Map<string, string>; isSelected: boolean; onSelect: () => void; fmtValue: (n: number) => string }) {
+function DetailCardItem({ tok, walletLabel, isSelected, onSelect, onInfoClick, fmtValue }: { tok: TokenTotal; walletLabel: Map<string, string>; isSelected: boolean; onSelect: () => void; onInfoClick: () => void; fmtValue: (n: number) => string }) {
   const { t } = useTranslation();
   const cfg = getTokenStyle(tok.tokenContract, tok.symbol);
+  const [hovered, setHovered] = useState(false);
   const walletMap = new Map<string, TokenBreakdown[]>();
   for (const b of tok.breakdown) {
     const key = b.address.toLowerCase();
@@ -317,19 +325,25 @@ function DetailCardItem({ tok, walletLabel, isSelected, onSelect, fmtValue }: { 
     pending: 'bg-green-500/20 text-green-400',
     lp: 'bg-blue-500/20 text-blue-400',
   };
+  const baseStyle = isSelected ? getSelectedStyle(cfg.hex) : getCardStyle(cfg);
+  const hoverStyle = hovered && !isSelected ? { borderColor: `${cfg.hex}99` } : {};
   return (
     <div onClick={onSelect}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       className={`cursor-pointer rounded-xl border flex flex-col gap-0 overflow-hidden transition-all duration-150 ${
         isSelected
           ? `${cfg.border}`
-          : `${cfg.border} ${cfg.bg} hover:border-dark-500/60`
+          : `${cfg.border} ${cfg.bg}`
       }`}
-      style={isSelected ? getSelectedStyle(cfg.hex) : getCardStyle(cfg)}
+      style={{ ...baseStyle, ...hoverStyle }}
     >
       <div className={`flex items-center gap-2 px-4 py-3 border-b ${cfg.border}`}>
-        <div className={`w-9 h-9 rounded-full ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden`}>
+        <button onClick={(e) => { e.stopPropagation(); onInfoClick(); }}
+          className={`w-9 h-9 rounded-full appearance-none bg-transparent ${cfg.bg} border ${cfg.border} flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-110 transition-transform`}
+          title="Market info">
           <TokenIcon symbol={tok.symbol} contractAddress={tok.tokenContract} color={cfg.color} />
-        </div>
+        </button>
         <div className="flex-1">
           <div className={`text-base font-bold ${cfg.color}`}>{fmtValue(tok.total)}</div>
           <div className="text-xs text-dark-400">
@@ -379,10 +393,12 @@ export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Pro
   const [detailMode, setDetailMode] = useState(false);
   const [unit,       setUnit]       = useState<TotalsUnit>('amount');
 
+  // Popup state for market info
+  const [popupToken, setPopupToken] = useState<{ tokenContract: string | undefined; symbol: string } | null>(null);
+
   const walletLabel = new Map<string, string>();
   for (const a of savedAddrs) { walletLabel.set(a.address.toLowerCase(), a.label || a.address.slice(0, 8) + '\u2026'); }
 
-  // Resolve BTC address for matching with selectedToken
   // Resolve BTC address for matching with selectedToken (BTC_NATIVE already imported from coreTokens)
 
   return (
@@ -411,13 +427,23 @@ export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Pro
             const isSelected = selectedToken !== null && tokAddr === selectedToken;
             const handleSelect = () => onSelectToken(isSelected ? null : tokAddr);
             const fmtValue = makeUnitFormatter(tok.symbol, tok.tokenContract, unit, marketPrices, btcPrice);
+            const handleInfoClick = () => setPopupToken({ tokenContract: tok.tokenContract, symbol: tok.symbol });
 
             return detailMode
-              ? <DetailCardItem key={tok.tokenContract || tok.symbol} tok={tok} walletLabel={walletLabel} isSelected={isSelected} onSelect={handleSelect} fmtValue={fmtValue} />
-              : <SummaryCardItem key={tok.tokenContract || tok.symbol} tok={tok} isSelected={isSelected} onSelect={handleSelect} fmtValue={fmtValue} />;
+              ? <DetailCardItem key={tok.tokenContract || tok.symbol} tok={tok} walletLabel={walletLabel} isSelected={isSelected} onSelect={handleSelect} onInfoClick={handleInfoClick} fmtValue={fmtValue} />
+              : <SummaryCardItem key={tok.tokenContract || tok.symbol} tok={tok} isSelected={isSelected} onSelect={handleSelect} onInfoClick={handleInfoClick} fmtValue={fmtValue} />;
           })}
         </motion.div>
       </AnimatePresence>
+
+      {/* Market info popup */}
+      {popupToken && (
+        <TokenMarketPopup
+          tokenContract={popupToken.tokenContract}
+          symbol={popupToken.symbol}
+          onClose={() => setPopupToken(null)}
+        />
+      )}
     </motion.div>
   );
 }

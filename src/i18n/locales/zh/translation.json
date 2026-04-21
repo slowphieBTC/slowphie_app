@@ -388,5 +388,20 @@
     "statusSaved": "✓ 已保存",
     "placeholder": "在此处写下您的答案、想法或笔记。已自动保存到您的浏览器。",
     "footer": "{{count}} 个字符 • 已本地保存"
+  },
+  "market": {
+    "loading": "加载市场数据…",
+    "lastTrade": "最近交易",
+    "pair": "交易对",
+    "price": "价格",
+    "amountIn": "输入量",
+    "amountOut": "输出量",
+    "block": "区块",
+    "time": "时间",
+    "bestRoute": "最佳路由",
+    "allRoutes": "所有路由",
+    "marketcap": "市值",
+    "spread": "价差",
+    "noDataBtc": "BTC 暂无市场数据"
   }
 }
