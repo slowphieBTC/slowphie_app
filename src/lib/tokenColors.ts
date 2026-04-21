@@ -47,7 +47,13 @@ const BY_ADDRESS: Record<string, TokenStyle> = {
   [CONTRACTS.ICHI_TOKEN.toLowerCase()]:   { hex: '#f2c244', color: 'text-[#f2c244]',   bg: 'bg-[#f2c244]/10',    border: 'border-[#f2c244]/20' },
   [CONTRACTS.SAT_TOKEN.toLowerCase()]:    { hex: '#e36cff', color: 'text-[#e36cff]',   bg: 'bg-[#e36cff]/10',    border: 'border-[#e36cff]/20' },
   [CONTRACTS.SWAP_TOKEN.toLowerCase()]:   { hex: '#60a5fa', color: 'text-blue-400',    bg: 'bg-blue-500/10',     border: 'border-blue-500/20' },
+  ['0xeb9471cb73645b273e39e249804b8b169f1529f56d690fc32acded7cd1ed54c1']: { hex: '#a78bfa', color: 'text-violet-400', bg: 'bg-violet-500/10', border: 'border-violet-500/20' },
+
+  // ── New freeMint tokens ─────────────────────────────────────────────────────────
+  ['0x4df18fe2574f7fb93cc117b03b7a2463b050ecf19b07a170da2f1e3573ef2f65']: { hex: '#fbbf24', color: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/20' },
+  ['0x9e9478efe3e8ad0c6e706c292860988303552299ec4cd38d553ec964dddb4323']: { hex: '#38bdf8', color: 'text-sky-400', bg: 'bg-sky-500/10', border: 'border-sky-500/20' },
 };
+
 
 // ── Symbol-keyed fallback (when address is unavailable) ──────────────────────────
 
@@ -62,9 +68,11 @@ const BY_SYMBOL: Record<string, TokenStyle> = {
   ICHI:  BY_ADDRESS[CONTRACTS.ICHI_TOKEN.toLowerCase()],
   SAT:   BY_ADDRESS[CONTRACTS.SAT_TOKEN.toLowerCase()],
   SWAP:  BY_ADDRESS[CONTRACTS.SWAP_TOKEN.toLowerCase()],
+  CATS:   BY_ADDRESS['0xeb9471cb73645b273e39e249804b8b169f1529f56d690fc32acded7cd1ed54c1'],
+  ASTEROID: BY_ADDRESS['0x4df18fe2574f7fb93cc117b03b7a2463b050ecf19b07a170da2f1e3573ef2f65'],
+  motodog:  BY_ADDRESS['0x9e9478efe3e8ad0c6e706c292860988303552299ec4cd38d553ec964dddb4323'],
 };
 
-// ── Public helpers ──────────────────────────────────────────────────────────────
 
 /** Look up token style by contract address first.
  *  If an address is provided but not found, returns FALLBACK (gray) —

@@ -103,7 +103,12 @@
     "mintToken": "{{icon}} 铸造 {{name}}",
     "simulating": "模拟中…",
     "signInWallet": "在钱包中签名…",
-    "requiresExtension": "需要 OP_WALLET 浏览器扩展"
+    "requiresExtension": "需要 OP_WALLET 浏览器扩展",
+    "layoutGrid": "网格视图",
+    "layoutRow": "列表视图",
+    "token": "代币",
+    "progress": "进度",
+    "action": "操作"
   },
   "school": {
     "heroTitle": "学习",

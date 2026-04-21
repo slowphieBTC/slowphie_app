@@ -5,8 +5,12 @@ import { TokenConfig } from '../config/tokens';
 import { useTokenInfo, TokenInfo } from '../hooks/useTokenInfo';
 import { useMintToken } from '../hooks/useMintToken';
 
+type SortField = 'date' | 'mintsLeft';
+
 interface Props {
   token: TokenConfig;
+  sortField: SortField;
+  mintsLeft: bigint | null;
   onInfoLoaded?: (tokenId: string, info: TokenInfo) => void;
 }
 
@@ -17,7 +21,7 @@ function formatAmount(raw: bigint, decimals: number): string {
   return `${whole.toLocaleString()}.${frac.toString().padStart(decimals, '0').slice(0, 2)}`;
 }
 
-export function TokenCard({ token, onInfoLoaded }: Props) {
+export function TokenCard({ token, sortField, mintsLeft, onInfoLoaded }: Props) {
   const { walletAddress } = useWalletConnect();
   const { info, loading, fetch } = useTokenInfo(token);
   const { mint, status, error, result, reset } = useMintToken(token);
@@ -42,7 +46,13 @@ export function TokenCard({ token, onInfoLoaded }: Props) {
           <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-2xl shadow-lg`}>{token.icon}</div>
           <div>
             <h2 className="text-xl font-bold text-white">{info?.name ?? token.name}</h2>
-            <p className="text-sm text-gray-400">{info?.symbol ?? token.symbol} \u00b7 OP_NET</p>
+            <p className="text-sm text-gray-400">{info?.symbol ?? token.symbol}</p>
+            {sortField === 'date' && (
+              <p className="text-xs text-gray-500 mt-0.5">{new Date(token.deployedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+            )}
+            {sortField === 'mintsLeft' && mintsLeft !== null && (
+              <p className="text-xs text-gray-500 mt-0.5">{mintsLeft.toLocaleString()} mints left</p>
+            )}
           </div>
         </div>
         <button onClick={fetch} disabled={loading} className="p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-colors" title={t('common.refresh')}>
@@ -77,13 +87,13 @@ export function TokenCard({ token, onInfoLoaded }: Props) {
 
       <div className="bg-white/5 rounded-xl p-3">
         <p className="text-xs text-gray-500 mb-1">{t('minter.contract')}</p>
-        <a href={`https://mainnet.opnet.org/contract/${encodeURIComponent(token.address)}`} target="_blank" rel="noopener noreferrer"
+        <a href={`https://opscan.org/token/${encodeURIComponent(token.address)}?network=mainnet`} target="_blank" rel="noopener noreferrer"
           className="text-xs font-mono text-gray-400 break-all hover:text-gray-200 transition-colors">{token.address}</a>
       </div>
 
       {status === 'success' && result && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2 text-green-400 font-semibold"><span>\u2705</span> {t('minter.mintedSuccess')}</div>
+          <div className="flex items-center gap-2 text-green-400 font-semibold"><span>✅</span> {t('minter.mintedSuccess')}</div>
           <p className="text-xs text-gray-400">{t('minter.transactionId')}</p>
           <a href={`https://mempool.space/tx/${result.txId}`} target="_blank" rel="noopener noreferrer"
             className="text-xs font-mono text-blue-400 hover:text-blue-300 underline break-all">{result.txId}</a>
@@ -94,7 +104,7 @@ export function TokenCard({ token, onInfoLoaded }: Props) {
 
       {status === 'error' && error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2 text-red-400 font-semibold"><span>\u274C</span> {t('minter.mintFailed')}</div>
+          <div className="flex items-center gap-2 text-red-400 font-semibold"><span>❌</span> {t('minter.mintFailed')}</div>
           <p className="text-xs text-gray-400 break-words">{error}</p>
           <button onClick={reset} className="text-xs text-red-400 hover:text-red-300 underline">{t('minter.tryAgain')}</button>
         </div>
@@ -113,8 +123,8 @@ export function TokenCard({ token, onInfoLoaded }: Props) {
             ].join(' ')}>
             {!isConnected && t('minter.connectToMint')}
             {isConnected && status === 'idle' && t('minter.mintToken', { icon: token.icon, name: token.name })}
-            {status === 'simulating' && <span className="flex items-center justify-center gap-2"><span className="animate-spin">\u2699\uFE0F</span> {t('minter.simulating')}</span>}
-            {status === 'signing' && <span className="flex items-center justify-center gap-2"><span className="animate-pulse">🖊️\uFE0F</span> {t('minter.signInWallet')}</span>}
+            {status === 'simulating' && <span className="flex items-center justify-center gap-2"><span className="animate-spin">⚙️</span> {t('minter.simulating')}</span>}
+            {status === 'signing' && <span className="flex items-center justify-center gap-2"><span className="animate-pulse">🖊️</span> {t('minter.signInWallet')}</span>}
           </button>
         )}
         {!isConnected && <p className="text-center text-xs text-gray-500 mt-2">{t('minter.requiresExtension')}</p>}

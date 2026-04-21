@@ -103,7 +103,12 @@
     "mintToken": "{{icon}} Mint {{name}}",
     "simulating": "Simulating…",
     "signInWallet": "Sign in Wallet…",
-    "requiresExtension": "Requires OP_WALLET browser extension"
+    "requiresExtension": "Requires OP_WALLET browser extension",
+    "layoutGrid": "Grid view",
+    "layoutRow": "Row view",
+    "token": "Token",
+    "progress": "Progress",
+    "action": "Action"
   },
   "school": {
     "heroTitle": "Learn",

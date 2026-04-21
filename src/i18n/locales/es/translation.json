@@ -103,7 +103,12 @@
     "mintToken": "{{icon}} Acuñar {{name}}",
     "simulating": "Simulando…",
     "signInWallet": "Firmar en billetera…",
-    "requiresExtension": "Requiere la extensión OP_WALLET"
+    "requiresExtension": "Requiere la extensión OP_WALLET",
+    "layoutGrid": "Vista cuadrícula",
+    "layoutRow": "Vista lista",
+    "token": "Token",
+    "progress": "Progreso",
+    "action": "Acción"
   },
   "school": {
     "heroTitle": "Aprende",

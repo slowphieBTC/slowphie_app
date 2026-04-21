@@ -103,7 +103,12 @@
     "mintToken": "{{icon}} Minter {{name}}",
     "simulating": "Simulation…",
     "signInWallet": "Signer dans le portefeuille…",
-    "requiresExtension": "Nécessite l'extension OP_WALLET"
+    "requiresExtension": "Nécessite l'extension OP_WALLET",
+    "layoutGrid": "Vue grille",
+    "layoutRow": "Vue liste",
+    "token": "Jeton",
+    "progress": "Progression",
+    "action": "Action"
   },
   "school": {
     "heroTitle": "Apprendre",

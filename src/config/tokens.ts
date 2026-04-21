@@ -74,7 +74,7 @@ const makeReadAbi = () => [
 
 export const MONEY_TOKEN: TokenConfig = {
   id: 'money',
-  name: '$MONEY',
+  name: 'MONEY',
   symbol: 'MONEY',
   icon: '💵',
   address: '0xd0e5def804a309471393c36cbfdc02f65dc977c51264fcef05fa495585d9d311',
@@ -107,7 +107,7 @@ export const MONEY_TOKEN: TokenConfig = {
 
 export const BIP110_TOKEN: TokenConfig = {
   id: 'bip110',
-  name: '$BIP110',
+  name: 'BIP110',
   symbol: 'BIP110',
   icon: '🪙',
   address: '0xe9f91d5fd91124ffb1f9a4846599a28236c3a7676d60c778027aa28ed27fe268',
@@ -140,7 +140,7 @@ export const BIP110_TOKEN: TokenConfig = {
 
 export const SWAP_TOKEN: TokenConfig = {
   id: 'swap',
-  name: '$SWAP',
+  name: 'SWAP',
   symbol: 'SWAP',
   icon: '🔄',
   address: '0xb4be035ad7e09d72b57ba5e1a28b70ec281991dab106833bd1a9e7642bb1f599',
@@ -173,7 +173,7 @@ export const SWAP_TOKEN: TokenConfig = {
 
 export const TESTICLE_TOKEN: TokenConfig = {
   id: 'testicle',
-  name: '$TESTICLE',
+  name: 'TESTICLE',
   symbol: 'TESTICLE',
   icon: '🥜',
   address: '0xa29e6baa2b9202f4a7b935960f166d8fa96ff018eb004f09571a39b1e98a5f51',
@@ -403,15 +403,15 @@ export const PUSSY_TOKEN: TokenConfig = {
   },
 };
 
-export const OPKILL_TOKEN: TokenConfig = {
-  id: 'opkill',
-  name: 'OpKill',
-  symbol: 'OPKILL',
-  icon: '⚔️',
-  address: '0xc537b2d11e3bc9eef4526a7162bbded9bd5f7f28ecfc69e173a15973ebce70c6',
+export const MOTOCATS_TOKEN: TokenConfig = {
+  id: 'motocats',
+  name: 'motocats',
+  symbol: 'cats',
+  icon: '🐈‍⬛',
+  address: '0xeb9471cb73645b273e39e249804b8b169f1529f56d690fc32acded7cd1ed54c1',
   abi: [
     {
-      name: 'batchMint',
+      name: 'freeMint',
       type: BitcoinAbiTypes.Function,
       constant: false,
       payable: false,
@@ -420,57 +420,86 @@ export const OPKILL_TOKEN: TokenConfig = {
     },
     ...makeReadAbi(),
   ] as BitcoinInterfaceAbi,
-  mintFunctionName: 'batchMint',
-  mintArgs: [1n],
-  mintPerCall: 25_000_000_000_000_000_000_000n,
+  mintFunctionName: 'freeMint',
+  mintArgs: [1_000_000_000_000_000_000n],
+  mintPerCall: 1_000_000_000_000_000_000n,
   decimals: 18,
-  maxSupply: 1_000_000_000_000_000_000_000_000_000n,
-  deployedAt: 0,
+  maxSupply: 16_000_000_000_000_000_000_000_000n,
+  deployedAt: 1775520000000,
   colorClasses: {
-    gradient: 'from-red-400 to-orange-500',
-    glow: 'glow-red',
-    text: 'text-red-400',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/20',
-    bar: 'bg-gradient-to-r from-red-400 to-orange-500',
+    gradient: 'from-violet-400 to-purple-600',
+    glow: 'glow-violet',
+    text: 'text-violet-400',
+    bg: 'bg-violet-500/10',
+    border: 'border-violet-500/20',
+    bar: 'bg-gradient-to-r from-violet-400 to-purple-500',
   },
 };
 
-export const LUKE_TOKEN: TokenConfig = {
-  id: 'luke_dash_jr',
-  name: 'LukeDashJr',
-  symbol: 'LUKE_DASH_JR',
-  icon: '🧙',
-  address: '0x03843bcaebae51d4474832e6f81ffcda2655fd9fa33517ff979f659866f14b70',
+export const ASTEROID_TOKEN: TokenConfig = {
+  id: 'asteroid',
+  name: 'Asteroid Shiba',
+  symbol: 'ASTEROID',
+  icon: '☄️',
+  address: '0x4df18fe2574f7fb93cc117b03b7a2463b050ecf19b07a170da2f1e3573ef2f65',
   abi: [
     {
-      name: 'mint',
+      name: 'freeMint',
       type: BitcoinAbiTypes.Function,
       constant: false,
       payable: false,
-      inputs: [
-        { name: 'to', type: ABIDataTypes.ADDRESS },
-        { name: 'amount', type: ABIDataTypes.UINT256 },
-      ],
+      inputs: [{ name: 'amount', type: ABIDataTypes.UINT256 }],
       outputs: [],
     },
     ...makeReadAbi(),
   ] as BitcoinInterfaceAbi,
-  mintFunctionName: 'mint',
-  mintArgs: [],
-  mintArgsFactory: (address: Address) => [address, 1_000_000_000_000_000_000_000_000n],
-  mintPerCall: 1_000_000_000_000_000_000_000_000n,
+  mintFunctionName: 'freeMint',
+  mintArgs: [1_000_000_000_000_000_000_000n],
+  mintPerCall: 1_000_000_000_000_000_000_000n,
   decimals: 18,
-  maxSupply: 21_000_000_000_000_000_000_000_000n,
-  deployedAt: 0,
+  maxSupply: 1_000_000_000_000_000_000_000_000_000n,
+  deployedAt: 1776428034000,
   colorClasses: {
-    gradient: 'from-cyan-400 to-sky-500',
-    glow: 'glow-cyan',
-    text: 'text-cyan-400',
-    bg: 'bg-cyan-500/10',
-    border: 'border-cyan-500/20',
-    bar: 'bg-gradient-to-r from-cyan-400 to-sky-500',
+    gradient: 'from-amber-400 to-orange-500',
+    glow: 'glow-amber',
+    text: 'text-amber-400',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/20',
+    bar: 'bg-gradient-to-r from-amber-400 to-orange-500',
   },
 };
 
-export const TOKENS: TokenConfig[] = [MONEY_TOKEN, BIP110_TOKEN, SWAP_TOKEN, TESTICLE_TOKEN, SAT_TOKEN, MOTOD_TOKEN, BITS_TOKEN, ANIME_TOKEN, PEPE_TOKEN, PUSSY_TOKEN];
+export const MOTODOG_TOKEN: TokenConfig = {
+  id: 'motodog',
+  name: 'motodog',
+  symbol: 'motodog',
+  icon: '🐕‍🦺',
+  address: '0x9e9478efe3e8ad0c6e706c292860988303552299ec4cd38d553ec964dddb4323',
+  abi: [
+    {
+      name: 'freeMint',
+      type: BitcoinAbiTypes.Function,
+      constant: false,
+      payable: false,
+      inputs: [{ name: 'amount', type: ABIDataTypes.UINT256 }],
+      outputs: [],
+    },
+    ...makeReadAbi(),
+  ] as BitcoinInterfaceAbi,
+  mintFunctionName: 'freeMint',
+  mintArgs: [1_000_000_000_000_000_000_000n],
+  mintPerCall: 1_000_000_000_000_000_000_000n,
+  decimals: 18,
+  maxSupply: 21_000_000_000_000_000_000_000_000n,
+  deployedAt: 1775026802000,
+  colorClasses: {
+    gradient: 'from-sky-400 to-blue-500',
+    glow: 'glow-sky',
+    text: 'text-sky-400',
+    bg: 'bg-sky-500/10',
+    border: 'border-sky-500/20',
+    bar: 'bg-gradient-to-r from-sky-400 to-blue-500',
+  },
+};
+
+export const TOKENS: TokenConfig[] = [MONEY_TOKEN, BIP110_TOKEN, SWAP_TOKEN, TESTICLE_TOKEN, SAT_TOKEN, MOTOD_TOKEN, BITS_TOKEN, ANIME_TOKEN, PEPE_TOKEN, PUSSY_TOKEN, MOTOCATS_TOKEN, ASTEROID_TOKEN, MOTODOG_TOKEN];
