@@ -3,6 +3,7 @@ import {
   createChart,
   ColorType,
   LineStyle,
+  TickMarkType,
   type IChartApi,
   type ISeriesApi,
   type Time,
@@ -133,6 +134,15 @@ function ChartCoreInner({ series, viewMode, showRawAmount }: ChartCoreProps) {
   useEffect(() => {
     if (!containerRef.current) return;
     const chart = createChart(containerRef.current, {
+      localization: {
+        timeFormatter: (time: number) => {
+          const d = new Date(time * 1000);
+          return d.toLocaleString([], {
+            month: 'short', day: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+          });
+        },
+      },
       layout: {
         background: { type: ColorType.Solid, color: 'transparent' },
         textColor: '#6b7280',
@@ -154,6 +164,20 @@ function ChartCoreInner({ series, viewMode, showRawAmount }: ChartCoreProps) {
         secondsVisible: false,
         fixLeftEdge: true,
         fixRightEdge: true,
+        tickMarkFormatter: (time: number, tickMarkType: TickMarkType) => {
+          const d = new Date(time * 1000);
+          if (tickMarkType === TickMarkType.Year) {
+            return d.toLocaleDateString([], { year: 'numeric' });
+          }
+          if (tickMarkType === TickMarkType.Month) {
+            return d.toLocaleDateString([], { month: 'short', year: '2-digit' });
+          }
+          if (tickMarkType === TickMarkType.DayOfMonth) {
+            return d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+          }
+          // Time tick marks
+          return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        },
       },
       handleScroll: true,
       handleScale: true,

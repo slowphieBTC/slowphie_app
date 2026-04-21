@@ -72,6 +72,12 @@ interface AppState {
   // Market prices: contractAddr (lowercase) → price in BTC
   marketPrices: Record<string, number>;
   setMarketPrices: (prices: Record<string, number>) => void;
+
+  // Background snapshot task status
+  snapshotIsSaving: boolean;
+  setSnapshotIsSaving: (v: boolean) => void;
+  snapshotLastSavedTs: number | null;
+  setSnapshotLastSavedTs: (ts: number) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -147,6 +153,11 @@ export const useAppStore = create<AppState>()(
 
       marketPrices: {},
       setMarketPrices: (prices) => set({ marketPrices: prices }),
+
+      snapshotIsSaving: false,
+      setSnapshotIsSaving: (v) => set({ snapshotIsSaving: v }),
+      snapshotLastSavedTs: null,
+      setSnapshotLastSavedTs: (ts) => set({ snapshotLastSavedTs: ts }),
     }),
     {
       name: 'motostrategy-storage',

@@ -3,9 +3,8 @@
  * and exposes decoded chart series for TokenEvolutionsCard.
  */
 
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useAppStore } from '../store';
-import { buildAndSaveSnapshot } from '../lib/portfolioSnapshot';
 import {
   getSnapshotsInRange,
   getAllTokenIndices,
@@ -270,16 +269,11 @@ export function usePortfolioHistory(
   isVisible:     (address: string) => boolean,
   showRawAmount: boolean,
 ) {
-  const positions            = useAppStore(s => s.allPositions);
-  const addresses            = useAppStore(s => s.addresses);
-  const btcPrice             = useAppStore(s => s.btcPrice);
-  const latestBlock          = useAppStore(s => s.latestBlock);
-  const positionsLastFetched = useAppStore(s => s.positionsLastFetched);
+  // isSaving / lastSavedTs come from the global background snapshot task
+  const isSaving    = useAppStore(s => s.snapshotIsSaving);
+  const lastSavedTs = useAppStore(s => s.snapshotLastSavedTs);
+  const snapshotLastSavedTs = lastSavedTs;
 
-  const lastSavedHeightRef = useRef<number | null>(null);
-
-  const [isSaving,    setIsSaving]    = useState(false);
-  const [lastSavedTs, setLastSavedTs] = useState<number | null>(null);
   const [series,      setSeries]      = useState<ChartSeries[]>([]);
   const [stats,       setStats]       = useState<{ count: number; estimatedBytes: number } | null>(null);
   const [error,       setError]       = useState<string | null>(null);
@@ -314,44 +308,17 @@ export function usePortfolioHistory(
     }
   }, [timeRange, viewMode, isVisible, showRawAmount]);
 
-  // Save snapshot when positions are freshly fetched (new block data)
-  // Save snapshot ONLY after positions are freshly fetched for the new block.
-  // Guard by positionsLastFetched (not block height) to avoid saving stale data:
-  // - latestBlock.height fires BEFORE positions are re-fetched → would save previous block data
-  // - positionsLastFetched fires AFTER usePositions completes → positions are current
-  const lastSavedFetchedRef = useRef<number>(0);
-
-  useEffect(() => {
-    if (positionsLastFetched === 0) return;
-    if (!latestBlock) return;
-    if (positions.length === 0 || addresses.length === 0) return;
-    if (!btcPrice) return;
-    // Guard: only save once per positions fetch cycle
-    if (lastSavedFetchedRef.current === positionsLastFetched) return;
-
-    lastSavedFetchedRef.current = positionsLastFetched;
-    setIsSaving(true);
-    setError(null);
-
-    buildAndSaveSnapshot(
-      positions,
-      addresses,
-      btcPrice,
-      latestBlock.timestamp,
-    )
-      .then(result => { if (result) setLastSavedTs(result.ts); })
-      .catch(err => setError(String(err)))
-      .finally(() => {
-        setIsSaving(false);
-        loadChartData();
-      });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [positionsLastFetched]);
 
   // Reload chart when range, view, or visibility changes
   useEffect(() => {
     loadChartData();
   }, [loadChartData]);
+
+  // Reload chart whenever the background snapshot task saves a new snapshot
+  useEffect(() => {
+    if (snapshotLastSavedTs !== null) loadChartData();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [snapshotLastSavedTs]);
 
   return { series, isSaving, lastSavedTs, stats, error, tokenIndex, reload: loadChartData };
 }

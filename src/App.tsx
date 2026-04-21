@@ -11,10 +11,18 @@ import { SchoolModule } from './pages/school/SchoolModule'
 import { SchoolGlossary } from './pages/school/SchoolGlossary'
 import { About } from './pages/About'
 import { useBtcPrice } from './hooks/useBtcPrice'
+import { useBackgroundSnapshot } from './hooks/useBackgroundSnapshot'
+import { usePositions } from './hooks/usePositions'
+import { useAppStore } from './store'
 
 function AppInner() {
   // Live BTC price & block polling via Slowphie Server
   useBtcPrice()
+  // Position fetching runs app-wide — fires on every new block regardless of route
+  const addresses = useAppStore(s => s.addresses)
+  usePositions(addresses.map(a => a.address))
+  // Snapshot runs app-wide — independent of active route
+  useBackgroundSnapshot()
 
   return (
     <div className="min-h-screen flex flex-col bg-[#060a14]">

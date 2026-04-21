@@ -129,6 +129,17 @@ function farmLink(farm: Farm): string {
 
 const norm = (a: string) => a.toLowerCase();
 
+// ── Module-level singletons — shared across all hook instances ───────────────
+// Ensures only one fetch runs at a time and block dedup works even when
+// usePositions is mounted in multiple places (AppInner + OpStrat).
+const _fetchingRef   = { current: false };
+const _phase2IdRef   = { current: 0 };
+const _lastBlockRef  = { current: 0 };
+const _tokenListRef  = { current: null as TokenEntry[] | null };
+const _farmListRef   = { current: null as Farm[] | null };
+const _addrLookupRef = { current: null as Map<string, { symbol: string; icon?: string }> | null };
+
+
 export function usePositions(addresses: string[]) {
   const allPositions   = useAppStore((s) => s.allPositions);
   const latestBlock    = useAppStore((s) => s.latestBlock);
@@ -138,15 +149,12 @@ export function usePositions(addresses: string[]) {
   const [loading,    setLoading]    = useState(() => allPositions.length === 0 && addresses.length > 0);
   const [refreshing, setRefreshing] = useState(false);
   const [error,      setError]      = useState<string | null>(null);
-  const fetchingRef                 = useRef(false);
-  const phase2IdRef                 = useRef(0);
+  const fetchingRef  = _fetchingRef;
+  const phase2IdRef  = _phase2IdRef;
 
-  /** Token list cache — loaded once per session from /tracks */
-  const tokenListRef  = useRef<TokenEntry[] | null>(null);
-  /** Farm list cache — loaded once per session from /farms */
-  const farmListRef   = useRef<Farm[] | null>(null);
-  /** Full address→{symbol,icon} lookup for staking reward resolution */
-  const addrLookupRef = useRef<Map<string, { symbol: string; icon?: string }> | null>(null);
+  const tokenListRef  = _tokenListRef;
+  const farmListRef   = _farmListRef;
+  const addrLookupRef = _addrLookupRef;
 
   const fetchAll = useCallback(async (silent = false) => {
     if (!addresses.length) { setAllPositions([]); return; }
@@ -624,7 +632,7 @@ export function usePositions(addresses: string[]) {
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addresses.join(',')]);
-  const lastBlockRef = useRef<number>(0);
+  const lastBlockRef = _lastBlockRef;
 
   useEffect(() => {
     if (!addresses.length) return;
