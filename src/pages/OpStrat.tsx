@@ -100,7 +100,7 @@ export default function OpStrat() {
           <p className="text-gray-400 max-w-md mx-auto text-sm">{t('tracks.heroSubtitle')}</p>
         </motion.div>
 
-        {positions.length > 0 && <TokenEvolutionsCard selectedToken={selectedToken} onClearSelection={() => { setSelectedToken(null); visibility.reset(); }} visibility={visibility} />}
+        {positions.length > 0 && <TokenEvolutionsCard selectedToken={selectedToken} onClearSelection={() => { setSelectedToken(null); visibility.reset(); }} onDeselectCard={() => setSelectedToken(null)} visibility={visibility} />}
         {positions.length > 0 && <TokenTotalsCard positions={positions} selectedToken={selectedToken} onSelectToken={(addr) => { if (addr) { setSelectedToken(addr); visibility.selectOnly(addr); } else { setSelectedToken(null); visibility.reset(); } }} />}
 
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

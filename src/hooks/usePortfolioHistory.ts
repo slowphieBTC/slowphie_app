@@ -16,6 +16,7 @@ import {
   type WalletIndexEntry,
 } from '../lib/snapshotStore';
 import { decodeSnapshot, type SnapshotPayload } from '../lib/snapshotEncoder';
+import { getTokenHex } from '../lib/tokenColors';
 
 // ── Public types ──────────────────────────────────────────────────────────────
 
@@ -44,27 +45,14 @@ const RANGE_SECONDS: Record<TimeRange, number> = {
   'ALL': 0,  // 0 = no lower bound
 };
 
-const TOKEN_COLOR_MAP: Record<string, string> = {
-  BTC:  '#fb923c',  // orange-400
-  MOTO: '#e0e0e0',  // soft white (pure white too harsh on dark bg)
-  PILL: '#e64900',
-  SAT:  '#facc15',  // yellow-400
-  SWAP: '#60a5fa',  // blue-400
-  BLUE: '#0577c0',
-  PEPE: '#4c9641',
-  UNGA: '#b85c1b',
-  MCHAD: '#75bbdf',
-};
-
 const FALLBACK_COLORS = [
   '#a78bfa', '#f59e0b', '#ef4444', '#06b6d4', '#84cc16',
   '#ec4899', '#8b5cf6', '#14b8a6', '#f43f5e', '#22d3ee',
 ];
 
 function getTokenColor(symbol: string, index: number): string {
-  return TOKEN_COLOR_MAP[symbol.toUpperCase()] ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
+  return getTokenHex(undefined, symbol) ?? FALLBACK_COLORS[index % FALLBACK_COLORS.length];
 }
-
 const MAX_CHART_POINTS = 500;
 
 // ── Series builder ────────────────────────────────────────────────────────────
@@ -100,7 +88,7 @@ function buildSeries(
       }
       return { time: snap.timestamp, value: total };
     });
-    return [{ id: 'total_btc', label: 'Portfolio (BTC)', color: TOKEN_COLOR_MAP['BTC'] ?? '#f97316', data }];
+    return [{ id: 'total_btc', label: 'Portfolio (BTC)', color: getTokenHex(undefined, 'BTC'), data }];
   }
 
   // ── Total USD ──
@@ -114,7 +102,7 @@ function buildSeries(
       }
       return { time: snap.timestamp, value: totalBtc * (snap.btcUsdCents / 100) };
     });
-    return [{ id: 'total_usd', label: 'Portfolio (USD)', color: TOKEN_COLOR_MAP['BTC'] ?? '#f97316', data }];
+    return [{ id: 'total_usd', label: 'Portfolio (USD)', color: getTokenHex(undefined, 'BTC'), data }];
   }
 
   // ── Per token ──
@@ -154,7 +142,7 @@ function buildSeries(
         result.push({
           id:    entry.address,
           label: entry.symbol,
-          color: getTokenColor(entry.symbol, ci),
+          color: getTokenHex(entry.address, entry.symbol) || FALLBACK_COLORS[ci % FALLBACK_COLORS.length],
           data,
         });
         ci++;
@@ -188,7 +176,7 @@ function buildSeries(
         if (valueUsd > 0) data.push({ time: snap.timestamp, value: valueUsd });
       }
       if (data.length > 0) {
-        result.push({ id: entry.address, label: entry.symbol, color: getTokenColor(entry.symbol, ci), data });
+        result.push({ id: entry.address, label: entry.symbol, color: getTokenHex(entry.address, entry.symbol) || FALLBACK_COLORS[ci % FALLBACK_COLORS.length], data });
         ci++;
       }
     }
@@ -270,7 +258,6 @@ function buildSeries(
     }
     return result;
   }
-
 
   return [];
 }

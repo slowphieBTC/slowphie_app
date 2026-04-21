@@ -68,6 +68,10 @@ interface AppState {
   // Dynamic token icon map: symbol (uppercase) -> image url
   tokenIcons: Record<string, string>;
   mergeTokenIcons: (icons: Record<string, string>) => void;
+
+  // Market prices: contractAddr (lowercase) → price in BTC
+  marketPrices: Record<string, number>;
+  setMarketPrices: (prices: Record<string, number>) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -140,6 +144,9 @@ export const useAppStore = create<AppState>()(
       },
       mergeTokenIcons: (icons) =>
         set((s) => ({ tokenIcons: { ...s.tokenIcons, ...icons } })),
+
+      marketPrices: {},
+      setMarketPrices: (prices) => set({ marketPrices: prices }),
     }),
     {
       name: 'motostrategy-storage',

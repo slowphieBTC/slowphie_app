@@ -158,8 +158,9 @@ export function useTokenVisibility() {
       });
     }
 
-    // Sort: core tokens in fixed order, then remaining core (LPs) alpha, then discovered alpha
+    // Sort: core tokens in fixed order, then discovered tokens in custom order, then alphabetical
     const CORE_ORDER = ['BTC', 'MOTO', 'PILL', 'MCHAD', 'PEPE', 'UNGA', 'BLUE'];
+    const DISCOVERED_ORDER = ['ICHI', 'SAT', 'SWAP', 'MONEY', 'BIP110', 'TESTICLE', 'PUSSY', 'MOTOD', 'PEPE', 'BITS', 'ANIME'];
     entries.sort((a, b) => {
       if (a.isCore !== b.isCore) return a.isCore ? -1 : 1;
       if (a.isCore && b.isCore) {
@@ -169,7 +170,13 @@ export function useTokenVisibility() {
         if (ai !== -1) return -1;                     // a has fixed order, b doesn't
         if (bi !== -1) return 1;                      // b has fixed order, a doesn't
       }
-      return a.symbol.localeCompare(b.symbol);        // discovered or remaining core: alpha
+      // Discovered (or non-fixed core) tokens: custom DISCOVERED_ORDER, then alphabetical
+      const ad = DISCOVERED_ORDER.indexOf(a.symbol.toUpperCase());
+      const bd = DISCOVERED_ORDER.indexOf(b.symbol.toUpperCase());
+      if (ad !== -1 && bd !== -1) return ad - bd;
+      if (ad !== -1) return -1;
+      if (bd !== -1) return 1;
+      return a.symbol.localeCompare(b.symbol);
     });
 
     return entries;

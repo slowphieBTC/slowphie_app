@@ -12,6 +12,7 @@ import { TrendingUp, Database, Loader2, AlertCircle, Eye, EyeOff, RotateCcw, Che
 import { usePortfolioHistory, type TimeRange, type ViewMode, type ChartSeries } from '../hooks/usePortfolioHistory';
 import { useTokenVisibility, type TokenVisibilityEntry } from '../hooks/useTokenVisibility';
 import { BTC_NATIVE } from '../lib/coreTokens';
+import { getTokenHex as getTokenHexUnified } from '../lib/tokenColors';
 import { clearAllSnapshots } from '../lib/snapshotStore';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -98,20 +99,9 @@ function deriveViewMode(unit: Unit, breakdown: Breakdown, hasSelection: boolean)
 
 const CHART_HEIGHT = 240;
 
-const TOKEN_HEX_MAP: Record<string, string> = {
-  BTC:  '#fb923c',
-  MOTO: '#e0e0e0',
-  PILL: '#e64900',
-  SAT:  '#facc15',
-  SWAP: '#60a5fa',
-  BLUE: '#0577c0',
-  PEPE: '#4c9641',
-  UNGA: '#b85c1b',
-  MCHAD:'#75bbdf',
-};
-
+// Token hex color lookup — delegates to unified tokenColors module (address-first)
 function getTokenHex(symbol: string): string {
-  return TOKEN_HEX_MAP[symbol.toUpperCase()] ?? '#6b7280';
+  return getTokenHexUnified(undefined, symbol);
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -260,9 +250,10 @@ interface FilterPanelProps {
   onToggleToken:       (addr: string) => void;
   onToggleDiscovered:  () => void;
   onReset:             () => void;
+  onDeselectCard:      () => void;
 }
 
-function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovered, onReset }: FilterPanelProps) {
+function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovered, onReset, onDeselectCard }: FilterPanelProps) {
   const coreEntries       = entries.filter(e => e.isCore);
   const discoveredEntries = entries.filter(e => !e.isCore);
   const hiddenCount       = entries.filter(e => !e.isVisible).length;
@@ -286,7 +277,7 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
               <span className="text-[11px] text-dark-600">{hiddenCount} hidden</span>
             )}
             <button
-              onClick={onReset}
+              onClick={() => { onReset(); onDeselectCard(); }}
               className="flex items-center gap-1 text-[11px] text-dark-600 hover:text-dark-300 transition-colors"
               title="Reset to defaults"
             >
@@ -301,7 +292,7 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
             <div className="text-[10px] font-semibold text-dark-500 uppercase tracking-wider mb-1.5">Core</div>
             <div className="flex flex-wrap gap-1.5">
               {coreEntries.map(e => (
-                <TokenPill key={e.address} entry={e} onToggle={onToggleToken} />
+                <TokenPill key={e.address} entry={e} onToggle={(addr) => { onToggleToken(addr); onDeselectCard(); }} />
               ))}
             </div>
           </div>
@@ -315,7 +306,7 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
             </div>
             {/* Master toggle */}
             <button
-              onClick={onToggleDiscovered}
+              onClick={() => { onToggleDiscovered(); onDeselectCard(); }}
               className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all ${
                 showDiscovered
                   ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
@@ -331,7 +322,7 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
           ) : (
             <div className="flex flex-wrap gap-1.5">
               {discoveredEntries.map(e => (
-                <TokenPill key={e.address} entry={e} onToggle={onToggleToken} />
+                <TokenPill key={e.address} entry={e} onToggle={(addr) => { onToggleToken(addr); onDeselectCard(); }} />
               ))}
             </div>
           )}
@@ -346,6 +337,7 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
 interface TokenEvolutionsCardProps {
   selectedToken: string | null;
   onClearSelection: () => void;
+  onDeselectCard: () => void;
   visibility: {
     isVisible: (address: string) => boolean;
     showDiscovered: boolean;
@@ -356,7 +348,7 @@ interface TokenEvolutionsCardProps {
   };
 }
 
-function TokenEvolutionsCardInner({ selectedToken, onClearSelection, visibility }: TokenEvolutionsCardProps) {
+function TokenEvolutionsCardInner({ selectedToken, onClearSelection, onDeselectCard, visibility }: TokenEvolutionsCardProps) {
   const [timeRange,  setTimeRange]  = useState<TimeRange>('24H');
   const [unit,       setUnit]       = useState<Unit>('btc');
   const [breakdown,  setBreakdown]  = useState<Breakdown>('none');
@@ -419,19 +411,27 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, visibility 
           <div className="flex items-center gap-0.5 bg-dark-900/60 rounded-lg p-0.5">
             {(['btc', 'usd', 'amount'] as Unit[]).map(u => {
               const isDisabled = u === 'amount' && breakdown === 'per_wallet';
+              const isActive = unit === u;
               return (
                 <button
                   key={u}
                   disabled={isDisabled}
                   onClick={() => !isDisabled && setUnit(u)}
-                  className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all ${
+                  className={`relative px-2.5 py-1 rounded-md text-[11px] font-semibold transition-colors ${
                     isDisabled
                       ? 'text-dark-700 cursor-not-allowed'
-                      : unit === u
-                        ? 'text-white bg-dark-700/60'
+                      : isActive
+                        ? 'text-white'
                         : 'text-dark-400 hover:text-dark-200'
                   }`}
                 >
+                  {isActive && !isDisabled && (
+                    <motion.div
+                      layoutId="unit-pill"
+                      transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                      className="absolute inset-0 bg-dark-700/60 rounded-md -z-10"
+                    />
+                  )}
                   {UNIT_LABELS[u]}
                 </button>
               );
@@ -506,28 +506,12 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, visibility 
             onToggleToken={visibility.toggleToken}
             onToggleDiscovered={visibility.toggleShowDiscovered}
             onReset={visibility.reset}
+            onDeselectCard={onDeselectCard}
           />
         )}
       </AnimatePresence>
 
-      {/* Selected token chip */}
-      {selectedSymbol && (
-        <div className="flex items-center gap-2 mb-3">
-          <span className="text-[11px] text-dark-500 font-medium">Showing:</span>
-          <button
-            onClick={onClearSelection}
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
-            style={{
-              backgroundColor: `${getTokenHex(selectedSymbol ?? '')}20`,
-              border: `1px solid ${getTokenHex(selectedSymbol ?? '')}50`,
-              color: getTokenHex(selectedSymbol ?? ''),
-            }}
-          >
-            {selectedSymbol}
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-      )}
+
 
       {/* Error */}
       {error && (
@@ -537,7 +521,25 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, visibility 
         </div>
       )}
 
-      {/* Chart area */}
+      {/* Chart area with overlay chip */}
+      <div className="relative">
+        {selectedSymbol && (
+          <div className="absolute top-0 left-0 z-10 flex items-center gap-2">
+            <span className="text-[11px] text-dark-500 font-medium">Showing:</span>
+            <button
+              onClick={onClearSelection}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold transition-all"
+              style={{
+                backgroundColor: `${getTokenHex(selectedSymbol ?? '')}20`,
+                border: `1px solid ${getTokenHex(selectedSymbol ?? '')}50`,
+                color: getTokenHex(selectedSymbol ?? ''),
+              }}
+            >
+              {selectedSymbol}
+              <X className="w-3 h-3" />
+            </button>
+          </div>
+        )}
       {noHistory ? (
         <div className="flex flex-col items-center justify-center gap-3 text-center" style={{ height: CHART_HEIGHT }}>
           <div className="text-3xl">📊</div>
@@ -561,6 +563,7 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, visibility 
           <Legend series={series} />
         </>
       )}
+      </div>
 
       {/* Footer stats */}
       {stats && stats.count > 0 && (

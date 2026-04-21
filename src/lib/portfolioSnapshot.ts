@@ -11,6 +11,7 @@ import { encodeSnapshot, type SnapshotPayload, type PriceEntry, type WalletEntry
 import { saveSnapshot, resolveWalletIndex, resolveTokenIndex } from './snapshotStore';
 import { BTC_NATIVE } from './coreTokens';
 import type { Position, Address } from '../types';
+import { useAppStore } from '../store';
 
 // ── Token aggregation (mirrors aggregateTokens in TokenTotalsCard) ─────────────
 // We keep this local and minimal — only what we need for snapshot building.
@@ -141,6 +142,14 @@ export async function buildAndSaveSnapshot(
       });
     }
   }
+
+  // Push market prices to Zustand store so TokenTotalsCard can use them without re-fetching
+  const storePrices: Record<string, number> = {};
+  for (const [addr, m] of marketPriceMap.entries()) {
+    storePrices[addr] = m.priceBtc;
+  }
+  useAppStore.getState().setMarketPrices(storePrices);
+
 
   // 2. Build symbol → contractAddress map from /markets for reward token resolution
   const symbolToContract = new Map<string, string>();
