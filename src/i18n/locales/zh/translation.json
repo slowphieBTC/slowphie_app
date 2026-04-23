@@ -23,7 +23,8 @@
     "school": "学院",
     "about": "关于",
     "settings": "设置",
-    "glossary": "词汇表 →"
+    "glossary": "词汇表 →",
+    "router": "路由"
   },
   "home": {
     "title": "欢迎来到",
@@ -44,6 +45,11 @@
         "title": "学院",
         "label": "学习",
         "description": "学习比特币和 OP_NET"
+      },
+      "router": {
+        "title": "路由",
+        "label": "路由",
+        "description": "寻找最佳路径"
       }
     }
   },
@@ -403,5 +409,12 @@
     "marketcap": "市值",
     "spread": "价差",
     "noDataBtc": "BTC 暂无市场数据"
+  },
+  "router": {
+    "heroTitle": "寻找",
+    "heroGradient": "最佳路径",
+    "heroSubtitle": "比较 MotoSwap 池并找到您交换的最佳路径。",
+    "comingSoon": "即将推出",
+    "backToHome": "← 返回首页"
   }
 }

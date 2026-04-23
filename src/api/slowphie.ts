@@ -53,7 +53,12 @@ export interface TrackedToken {
   totalSupply:  string;
   icon:         string;
   firstSeenAt:  number;
-  updatedAt:    number;
+  swapMeta?: {
+    routeCount: number;
+    bestRouteTrust: string;
+    lastRouteUpdate: number;
+  };
+  trust?: string;
 }
 
 export interface SlowphieTracksResponse {
@@ -143,6 +148,29 @@ export async function fetchStatus(): Promise<StatusResponse> {
 export async function fetchTrackedTokens(): Promise<SlowphieTracksResponse> {
   const res = await fetchTimeout(`${BASE_URL}/tracks`);
   if (!res.ok) throw new Error(`Slowphie API HTTP ${res.status}`);
+  return res.json() as Promise<SlowphieTracksResponse>;
+}
+
+export interface RouterTokensParams {
+  search?: string;
+  trust?: string;
+  sort?: string;
+  limit?: number;
+  offset?: number;
+}
+
+export async function fetchRouterTokens(params?: RouterTokensParams): Promise<SlowphieTracksResponse> {
+  const qs = new URLSearchParams();
+  qs.set('onlyTokens', 'true');
+  qs.set('swappable', 'true');
+  qs.set('limit', String(params?.limit ?? 5000));
+  qs.set('offset', String(params?.offset ?? 0));
+  qs.set('sort', params?.sort ?? 'deployedAt_desc');
+  if (params?.search) qs.set('search', params.search);
+  if (params?.trust) qs.set('trust', params.trust);
+  const url = `${BASE_URL}/tracks?${qs.toString()}`;
+  const res = await fetchTimeout(url);
+  if (!res.ok) throw new Error(`Slowphie /tracks router HTTP ${res.status}`);
   return res.json() as Promise<SlowphieTracksResponse>;
 }
 
@@ -250,4 +278,110 @@ export async function fetchMarketByAddress(address: string): Promise<MarketData>
   const res = await fetchTimeout(`${BASE_URL}/markets/${encodeURIComponent(address)}`);
   if (!res.ok) throw new Error(`Slowphie /markets/${address} HTTP ${res.status}`);
   return res.json() as Promise<MarketData>;
+}
+
+// ── Route & History endpoints ────────────────────────────────────────────────
+
+export interface ArbitrageDetail {
+  optimalBtcIn: string;
+  optimalBtcInSats: string;
+  estimatedProfitBtc: string;
+  estimatedProfitSats: string;
+  profitMarginPct: number;
+  buyLeg: { path: string[]; source: string };
+  sellLeg: { path: string[]; source: string };
+  feasibility: string;
+  queueImpactValidated: boolean;
+  calculatedAt: string;
+  totalTaxesApplied: Array<{ symbol: string; address: string; taxPct: number; direction: string }>;
+}
+
+export interface RouteDetail {
+  tokenAddress: string;
+  tokenSymbol: string;
+  tokenName: string;
+  price: string;
+  marketcap: string;
+  buyTax: number;
+  sellTax: number;
+  spread: string;
+  arbitrage: boolean;
+  arbitrageDetail?: ArbitrageDetail;
+  routes: MarketRoute[];
+  lastTrade: MarketLastTrade | null;
+}
+
+export async function fetchTokenRoutes(address: string): Promise<RouteDetail> {
+  const res = await fetchTimeout(`${BASE_URL}/routes/${encodeURIComponent(address)}`);
+  if (!res.ok) throw new Error(`Slowphie /routes/${address} HTTP ${res.status}`);
+  return res.json() as Promise<RouteDetail>;
+}
+
+export interface HistoryPoint {
+  timestamp: number;
+  bestPriceBtc: string;
+  feeAdjustedPriceBtc: string;
+  routeCount: number;
+  bestRoutePath: string[];
+  arbitrageSpreadPct?: number;
+  estimatedLiquidityBtc: string;
+}
+
+export interface HistoryResponse {
+  tokenAddress: string;
+  interval: string;
+  data: Array<{
+    timestamp: number;
+    open: string;
+    high: string;
+    low: string;
+    close: string;
+    volumeBtc: string;
+  }> | HistoryPoint[];
+}
+
+export async function fetchTokenHistory(
+  address: string,
+  interval: string = '15m',
+  from: string = '24h',
+  ohlc: boolean = true
+): Promise<HistoryResponse> {
+  const url = `${BASE_URL}/history/${encodeURIComponent(address)}?interval=${interval}&from=${encodeURIComponent(from)}&ohlc=${ohlc}`;
+  const res = await fetchTimeout(url);
+  if (!res.ok) throw new Error(`Slowphie /history/${address} HTTP ${res.status}`);
+  return res.json() as Promise<HistoryResponse>;
+}
+
+// ── Arbitrage endpoint ───────────────────────────────────────────────────────
+
+export interface ArbitrageOpportunity {
+  tokenAddress: string;
+  tokenSymbol: string;
+  detectedAt: number;
+  blockHeight: string;
+  spreadPct: number;
+  buyRoute: { path: string[]; price: string };
+  sellRoute: { path: string[]; price: string };
+  feasibility: string;
+  optimalSizeBtc?: string;
+  expectedProfitBtc?: string;
+  status: string;
+}
+
+export interface ArbitrageResponse {
+  opportunities: ArbitrageOpportunity[];
+  total: number;
+  page: number;
+  limit: number;
+  offset: number;
+}
+
+export async function fetchArbitrageOpportunities(
+  status: string = 'open',
+  limit: number = 20
+): Promise<ArbitrageResponse> {
+  const url = `${BASE_URL}/arbitrage?status=${status}&limit=${limit}`;
+  const res = await fetchTimeout(url);
+  if (!res.ok) throw new Error(`Slowphie /arbitrage HTTP ${res.status}`);
+  return res.json() as Promise<ArbitrageResponse>;
 }

@@ -1,147 +1,161 @@
-import { useEffect, useRef, memo } from 'react';
-import {
-  createChart,
-  ColorType,
-  LineStyle,
-  type IChartApi,
-  type ISeriesApi,
-  type LineSeriesOptions,
-} from 'lightweight-charts';
-import { useAppStore, type PricePoint } from '../store';
+import { useEffect, useRef } from 'react';
+import { createChart, type IChartApi, type CandlestickData, type LineData } from 'lightweight-charts';
 
 interface Props {
-  height?: number;
-  showTitle?: boolean;
+  data?: Array<{
+    time?: number | string;
+    timestamp?: number | string;
+    open?: string;
+    high?: string;
+    low?: string;
+    close?: string;
+    price?: string;
+    bestPriceBtc?: string;
+  }>;
+  mode: 'line' | 'candle';
+  onModeChange: (mode: 'line' | 'candle') => void;
+  livePrice?: string;
+  color: string;
 }
 
-function PriceChartInner({ height = 220, showTitle = true }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<'Line'> | null>(null);
-  const priceHistory = useAppStore((s) => s.priceHistory);
-  const btcPrice = useAppStore((s) => s.btcPrice);
+function toTimeValue(t: number | string | undefined): number {
+  if (typeof t === 'number') return t;
+  if (typeof t === 'string') return Date.parse(t);
+  return Date.now();
+}
 
-  // Init chart
+export default function PriceChart({ data = [], mode, onModeChange, livePrice, color }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || data.length === 0) return;
 
     const chart = createChart(containerRef.current, {
       layout: {
-        background: { type: ColorType.Solid, color: 'transparent' },
-        textColor: '#6b7280',
+        background: { color: 'transparent' },
+        textColor: '#94a3b8',
         fontSize: 11,
-        fontFamily: 'Inter, system-ui, sans-serif',
       },
       grid: {
-        vertLines: { color: '#1a1a28', style: LineStyle.Dashed },
-        horzLines: { color: '#1a1a28', style: LineStyle.Dashed },
+        vertLines: { color: 'rgba(255,255,255,0.03)' },
+        horzLines: { color: 'rgba(255,255,255,0.03)' },
       },
       crosshair: {
-        vertLine: { color: '#f97316', width: 1, style: LineStyle.Dashed, labelBackgroundColor: '#f97316' },
-        horzLine: { color: '#f97316', width: 1, style: LineStyle.Dashed, labelBackgroundColor: '#f97316' },
+        mode: 1,
+        vertLine: { color: 'rgba(255,255,255,0.1)', width: 1, style: 2 },
+        horzLine: { color: 'rgba(255,255,255,0.1)', width: 1, style: 2 },
       },
       rightPriceScale: {
-        borderColor: '#1a1a28',
-        textColor: '#6b7280',
+        borderColor: 'rgba(255,255,255,0.06)',
+        scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: '#1a1a28',
+        borderColor: 'rgba(255,255,255,0.06)',
         timeVisible: true,
         secondsVisible: false,
-        fixLeftEdge: true,
-        fixRightEdge: true,
       },
-      handleScroll: true,
-      handleScale: true,
-      width: containerRef.current.clientWidth,
-      height,
+      handleScroll: { vertTouchDrag: false },
+      handleScale: { axisPressedMouseMove: false },
     });
 
-    const series = chart.addLineSeries({
-      color: '#f97316',
-      lineWidth: 2,
-      priceLineVisible: true,
-      priceLineColor: '#f97316',
-      priceLineWidth: 1,
-      priceLineStyle: LineStyle.Dashed,
-      lastValueVisible: true,
-      crosshairMarkerVisible: true,
-      crosshairMarkerRadius: 4,
-      crosshairMarkerBorderColor: '#f97316',
-      crosshairMarkerBackgroundColor: '#0a0a0f',
-    } as Partial<LineSeriesOptions>);
+    // Determine if we have OHLC data
+    const hasOhlc = data.length > 0 && data[0].open !== undefined;
 
-    chartRef.current = chart;
-    seriesRef.current = series;
+    if (hasOhlc && mode === 'candle') {
+      const series = chart.addCandlestickSeries({
+        upColor: '#22c55e',
+        downColor: '#ef4444',
+        borderUpColor: '#22c55e',
+        borderDownColor: '#ef4444',
+        wickUpColor: '#22c55e',
+        wickDownColor: '#ef4444',
+      });
+      const candleData: CandlestickData[] = data
+        .filter((d) => d.open && d.high && d.low && d.close)
+        .map((d) => ({
+          time: (toTimeValue(d.time ?? d.timestamp) / 1000) as unknown as string,
+          open: parseFloat(d.open!),
+          high: parseFloat(d.high!),
+          low: parseFloat(d.low!),
+          close: parseFloat(d.close!),
+        }));
+      series.setData(candleData);
+      chart.timeScale().fitContent();
+    } else {
+      const series = chart.addLineSeries({
+        color,
+        lineWidth: 2,
+        crosshairMarkerVisible: true,
+        crosshairMarkerRadius: 4,
+        lastValueVisible: true,
+      });
+      const lineData: LineData[] = data
+        .map((d) => ({
+          time: (toTimeValue(d.time ?? d.timestamp) / 1000) as unknown as string,
+          value: parseFloat(d.close ?? d.price ?? d.bestPriceBtc ?? '0'),
+        }))
+        .filter((d) => d.value > 0);
+      series.setData(lineData);
+      chart.timeScale().fitContent();
+    }
 
-    const ro = new ResizeObserver(() => {
+    const handleResize = () => {
       if (containerRef.current) {
-        chart.applyOptions({ width: containerRef.current.clientWidth });
+        chart.applyOptions({ width: containerRef.current.clientWidth, height: 240 });
       }
-    });
-    ro.observe(containerRef.current);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      ro.disconnect();
+      window.removeEventListener('resize', handleResize);
       chart.remove();
-      chartRef.current = null;
-      seriesRef.current = null;
     };
-  }, [height]);
+  }, [data, color, mode]);
 
-  // Update data when priceHistory changes
-  useEffect(() => {
-    if (!seriesRef.current || priceHistory.length === 0) return;
-    // Deduplicate by time (latest wins) and sort ascending
-    const deduped = new Map<number, number>();
-    priceHistory.forEach((p) => deduped.set(Math.floor(p.time), p.value));
-    const sorted = Array.from(deduped.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([time, value]) => ({ time: time as import('lightweight-charts').Time, value }));
-    try {
-      seriesRef.current.setData(sorted);
-      chartRef.current?.timeScale().fitContent();
-    } catch {
-      // ignore stale updates
-    }
-  }, [priceHistory]);
+  if (data.length === 0) return null;
 
-  const isEmpty = priceHistory.length === 0;
+  if (data.length < 2) {
+    return (
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] text-slate-500 uppercase tracking-wider">Price Chart</span>
+        </div>
+        <div className="flex items-center justify-center h-60 rounded-xl bg-dark-900/40 border border-white/[0.06]">
+          <div className="text-center space-y-2 px-4">
+            <div className="w-8 h-8 border-2 border-slate-600 border-t-white rounded-full animate-spin mx-auto" />
+            <p className="text-xs text-slate-500">Collecting price data...</p>
+            <p className="text-[10px] text-slate-600">Chart appears after a few market refreshes</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="glass rounded-2xl p-5">
-      {showTitle && (
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <div className="text-sm font-semibold text-white">BTC / USD</div>
-            <div className="text-xs text-gray-500 mt-0.5">Live price feed · Slowphie Server</div>
-          </div>
-          {btcPrice && (
-            <div className="text-right">
-              <div className="text-xl font-bold text-brand-400">
-                ${btcPrice.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-              </div>
-              <div className="text-xs text-gray-500">{priceHistory.length} data points</div>
-            </div>
-          )}
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-slate-500 uppercase tracking-wider">Price Chart</span>
+        <div className="flex rounded-lg bg-dark-900/60 p-0.5">
+          <button
+            onClick={() => onModeChange('candle')}
+            className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+              mode === 'candle' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Candles
+          </button>
+          <button
+            onClick={() => onModeChange('line')}
+            className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+              mode === 'line' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+            }`}
+          >
+            Line
+          </button>
         </div>
-      )}
-      {isEmpty ? (
-        <div
-          className="flex items-center justify-center text-gray-600 text-sm"
-          style={{ height }}
-        >
-          <div className="text-center">
-            <div className="text-2xl mb-2">📡</div>
-            <div>Waiting for live price data…</div>
-            <div className="text-xs text-gray-700 mt-1">Connecting to Slowphie Server</div>
-          </div>
-        </div>
-      ) : (
-        <div ref={containerRef} style={{ height }} />
-      )}
+      </div>
+      <div ref={containerRef} style={{ width: '100%', height: 240 }} />
     </div>
   );
 }
-
-export const PriceChart = memo(PriceChartInner);

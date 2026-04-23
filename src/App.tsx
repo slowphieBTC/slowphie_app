@@ -5,6 +5,7 @@ import { StatsBar } from './components/StatsBar'
 import { SettingsModal } from './components/SettingsModal'
 import Home from './pages/Home'
 import OpStrat from './pages/OpStrat'
+import OpRouter from './pages/OpRouter'
 import OpMinter from './pages/OpMinter'
 import { SchoolHome } from './pages/school/SchoolHome'
 import { SchoolModule } from './pages/school/SchoolModule'
@@ -37,6 +38,7 @@ function AppInner() {
           <Route path="/school" element={<SchoolHome />} />
           <Route path="/school/module/:slug" element={<SchoolModule />} />
           <Route path="/school/glossary" element={<SchoolGlossary />} />
+          <Route path="/router" element={<OpRouter />} />
           <Route path="/about" element={<About />} />
         </Routes>
       </main>

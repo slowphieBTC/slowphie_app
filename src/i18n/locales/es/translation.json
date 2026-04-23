@@ -23,7 +23,8 @@
     "school": "Escuela",
     "about": "Acerca de",
     "settings": "Configuración",
-    "glossary": "Glosario →"
+    "glossary": "Glosario →",
+    "router": "Router"
   },
   "home": {
     "title": "Bienvenido a",
@@ -44,6 +45,11 @@
         "title": "Escuela",
         "label": "Aprender",
         "description": "Aprende Bitcoin y OP_NET"
+      },
+      "router": {
+        "title": "Router",
+        "label": "Router",
+        "description": "Encuentra la mejor ruta"
       }
     }
   },
@@ -403,5 +409,12 @@
     "marketcap": "Capitalización",
     "spread": "Spread",
     "noDataBtc": "Sin datos de mercado para BTC"
+  },
+  "router": {
+    "heroTitle": "Encuentra la",
+    "heroGradient": "Mejor Ruta",
+    "heroSubtitle": "Compara los pools de MotoSwap y encuentra la ruta óptima para tus intercambios.",
+    "comingSoon": "Próximamente",
+    "backToHome": "← Volver al inicio"
   }
 }

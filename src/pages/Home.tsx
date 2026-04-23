@@ -19,6 +19,7 @@ export default function Home() {
   const modules = [
     { id: 'opstrat', title: t('home.modules.tracks.title'), label: t('home.modules.tracks.label'), description: t('home.modules.tracks.description'), image: '/OpStrat.png', route: '/tracks', accent: '#f7931a' },
     { id: 'opminter', title: t('home.modules.minter.title'), label: t('home.modules.minter.label'), description: t('home.modules.minter.description'), image: '/OpMinter.png', route: '/minter', accent: '#ff6b35' },
+    { id: 'oprouter', title: t('home.modules.router.title'), label: t('home.modules.router.label'), description: t('home.modules.router.description'), image: '/OpRouter.png', route: '/router', accent: '#4ade80' },
     { id: 'opschool', title: t('home.modules.school.title'), label: t('home.modules.school.label'), description: t('home.modules.school.description'), image: '/OpSchool.png', route: '/school', accent: '#b75be3' }
   ]
 
@@ -66,7 +67,7 @@ export default function Home() {
         <p className="text-slate-400 text-lg max-w-md mx-auto">{t('home.subtitle')}</p>
       </motion.div>
 
-      <motion.div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full max-w-3xl" variants={containerVariants} initial="hidden" animate="visible">
+      <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 w-full max-w-4xl" variants={containerVariants} initial="hidden" animate="visible">
         {modules.map((mod) => (
           <motion.div key={mod.id} variants={cardVariants} className="glass-card cursor-pointer group p-0" onClick={() => navigate(mod.route)} style={{ '--accent': mod.accent } as React.CSSProperties}>
             <div className="relative overflow-hidden rounded-t-3xl">
