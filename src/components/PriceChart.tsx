@@ -16,6 +16,8 @@ interface Props {
   onModeChange: (mode: 'line' | 'candle') => void;
   livePrice?: string;
   color: string;
+  source?: 'motoswap' | 'nativeswap';
+  onSourceChange?: (source: 'motoswap' | 'nativeswap') => void;
 }
 
 function toTimeValue(t: number | string | undefined): number {
@@ -24,7 +26,7 @@ function toTimeValue(t: number | string | undefined): number {
   return Date.now();
 }
 
-export default function PriceChart({ data = [], mode, onModeChange, livePrice, color }: Props) {
+export default function PriceChart({ data = [], mode, onModeChange, livePrice, color, source, onSourceChange }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -53,9 +55,26 @@ export default function PriceChart({ data = [], mode, onModeChange, livePrice, c
         borderColor: 'rgba(255,255,255,0.06)',
         timeVisible: true,
         secondsVisible: false,
+        tickMarkFormatter: (time: number) => {
+          const date = new Date(time * 1000);
+          return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: false });
+        },
+      },
+      localization: {
+        timeFormatter: (time: number) => {
+          const date = new Date(time * 1000);
+          return date.toLocaleString(undefined, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+          });
+        },
       },
       handleScroll: { vertTouchDrag: false },
-      handleScale: { axisPressedMouseMove: false },
     });
 
     // Determine if we have OHLC data
@@ -136,23 +155,47 @@ export default function PriceChart({ data = [], mode, onModeChange, livePrice, c
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <span className="text-[10px] text-slate-500 uppercase tracking-wider">Price Chart</span>
-        <div className="flex rounded-lg bg-dark-900/60 p-0.5">
-          <button
-            onClick={() => onModeChange('candle')}
-            className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
-              mode === 'candle' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Candles
-          </button>
-          <button
-            onClick={() => onModeChange('line')}
-            className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
-              mode === 'line' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
-            }`}
-          >
-            Line
-          </button>
+        <div className="flex items-center gap-2">
+          {/* Source toggle */}
+          {onSourceChange && (
+            <div className="flex rounded-lg bg-dark-900/60 p-0.5">
+              <button
+                onClick={() => onSourceChange('motoswap')}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                  source === 'motoswap' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                MotoSwap
+              </button>
+              <button
+                onClick={() => onSourceChange('nativeswap')}
+                className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                  source === 'nativeswap' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                NativeSwap
+              </button>
+            </div>
+          )}
+          {/* Chart mode toggle - Line left, Candle right */}
+          <div className="flex rounded-lg bg-dark-900/60 p-0.5">
+            <button
+              onClick={() => onModeChange('line')}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                mode === 'line' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Line
+            </button>
+            <button
+              onClick={() => onModeChange('candle')}
+              className={`px-2 py-0.5 rounded-md text-[10px] font-medium transition-all ${
+                mode === 'candle' ? 'bg-white/10 text-white' : 'text-gray-500 hover:text-gray-300'
+              }`}
+            >
+              Candles
+            </button>
+          </div>
         </div>
       </div>
       <div ref={containerRef} style={{ width: '100%', height: 240 }} />

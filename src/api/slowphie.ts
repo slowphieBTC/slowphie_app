@@ -282,19 +282,6 @@ export async function fetchMarketByAddress(address: string): Promise<MarketData>
 
 // ── Route & History endpoints ────────────────────────────────────────────────
 
-export interface ArbitrageDetail {
-  optimalBtcIn: string;
-  optimalBtcInSats: string;
-  estimatedProfitBtc: string;
-  estimatedProfitSats: string;
-  profitMarginPct: number;
-  buyLeg: { path: string[]; source: string };
-  sellLeg: { path: string[]; source: string };
-  feasibility: string;
-  queueImpactValidated: boolean;
-  calculatedAt: string;
-  totalTaxesApplied: Array<{ symbol: string; address: string; taxPct: number; direction: string }>;
-}
 
 export interface RouteDetail {
   tokenAddress: string;
@@ -305,50 +292,46 @@ export interface RouteDetail {
   buyTax: number;
   sellTax: number;
   spread: string;
-  arbitrage: boolean;
-  arbitrageDetail?: ArbitrageDetail;
   routes: MarketRoute[];
   lastTrade: MarketLastTrade | null;
 }
 
 export async function fetchTokenRoutes(address: string): Promise<RouteDetail> {
-  const res = await fetchTimeout(`${BASE_URL}/routes/${encodeURIComponent(address)}`);
-  if (!res.ok) throw new Error(`Slowphie /routes/${address} HTTP ${res.status}`);
+  const res = await fetchTimeout(`${BASE_URL}/markets/routes/${encodeURIComponent(address)}`);
+  if (!res.ok) throw new Error(`Slowphie /markets/routes/${address} HTTP ${res.status}`);
   return res.json() as Promise<RouteDetail>;
 }
 
-export interface HistoryPoint {
-  timestamp: number;
-  bestPriceBtc: string;
-  feeAdjustedPriceBtc: string;
-  routeCount: number;
-  bestRoutePath: string[];
-  arbitrageSpreadPct?: number;
-  estimatedLiquidityBtc: string;
-}
 
 export interface HistoryResponse {
   tokenAddress: string;
   interval: string;
-  data: Array<{
+  count: number;
+  from: number;
+  to: number;
+  candles: Array<{
     timestamp: number;
     open: string;
     high: string;
     low: string;
     close: string;
-    volumeBtc: string;
-  }> | HistoryPoint[];
+    volumeBuyBtc: string;
+    volumeSellBtc: string;
+  }>;
 }
 
 export async function fetchTokenHistory(
   address: string,
-  interval: string = '15m',
-  from: string = '24h',
-  ohlc: boolean = true
+  interval: string = '1h',
+  unit?: string,
+  range?: string,
+  source: 'motoswap' | 'nativeswap' = 'motoswap'
 ): Promise<HistoryResponse> {
-  const url = `${BASE_URL}/history/${encodeURIComponent(address)}?interval=${interval}&from=${encodeURIComponent(from)}&ohlc=${ohlc}`;
+  let url = `${BASE_URL}/markets/charts/${encodeURIComponent(address)}?interval=${interval}&source=${source}`;
+  if (unit) url += `&unit=${encodeURIComponent(unit)}`;
+  if (range) url += `&range=${encodeURIComponent(range)}`;
   const res = await fetchTimeout(url);
-  if (!res.ok) throw new Error(`Slowphie /history/${address} HTTP ${res.status}`);
+  if (!res.ok) throw new Error(`Slowphie /markets/charts/${address} HTTP ${res.status}`);
   return res.json() as Promise<HistoryResponse>;
 }
 

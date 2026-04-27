@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ExternalLink, ArrowRight, ShieldCheck, AlertTriangle, Zap, Calculator } from 'lucide-react';
+import { X, ExternalLink, ArrowRight, ShieldCheck, AlertTriangle, Calculator } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../store';
 import { fetchTokenRoutes, fetchTokenHistory } from '../api/slowphie';
@@ -95,6 +95,25 @@ function fmtUsd(val: number): string {
   return '$' + val.toFixed(2);
 }
 
+function fmtAutoDecimal(val: number): string {
+  if (!isFinite(val) || Number.isNaN(val)) return '—';
+  const abs = Math.abs(val);
+
+  if (abs === 0) return '0';
+
+  if (abs >= 1e9) return val.toFixed(2);
+  if (abs >= 1) return val.toLocaleString(undefined, { maximumFractionDigits: 6 });
+
+  // Small numbers: auto-calculate decimals for ~5 significant digits
+  const log10 = Math.log10(abs);
+  const leadingZeros = Math.max(0, Math.floor(-log10));
+  const decimals = Math.min(leadingZeros + 5, 14);
+
+  let result = val.toFixed(decimals);
+  result = result.replace(/\.?0+$/, '');
+  if (result === '' || result === '-') return '0';
+  return result;
+}
 function formatTimestamp(ts: string | number): string {
   try {
     const d = typeof ts === 'string' ? new Date(ts) : new Date(ts);
@@ -104,65 +123,6 @@ function formatTimestamp(ts: string | number): string {
   }
 }
 
-/* ── Sparkline from history ─────────────────────────────────────────── */
-
-function PriceSparkline({ data, livePrice }: { data: HistoryResponse['data']; livePrice?: string }) {
-  const points = useMemo(() => {
-    const arr = Array.isArray(data) ? data : [];
-    if (arr.length === 0) return [];
-    return arr.map((d: any) => parseFloat(d.close ?? d.bestPriceBtc ?? '0')).filter(v => v > 0);
-  }, [data]);
-
-  if (points.length < 2) return null;
-
-  const width = 400;
-  const height = 80;
-  const padding = 4;
-  const min = Math.min(...points);
-  const max = Math.max(...points);
-  const range = max - min || 1;
-
-  const coords = points.map((v, i) => {
-    const x = padding + (i / (points.length - 1)) * (width - padding * 2);
-    const y = height - padding - ((v - min) / range) * (height - padding * 2);
-    return `${x},${y}`;
-  }).join(' ');
-
-  const change = ((points[points.length - 1] - points[0]) / points[0]) * 100;
-  const changeColor = change >= 0 ? 'text-green-400' : 'text-red-400';
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between">
-        <span className="text-[10px] text-slate-500 uppercase tracking-wider">24h Price</span>
-        <span className={`text-xs font-mono font-bold ${changeColor}`}>
-          {change >= 0 ? '+' : ''}{change.toFixed(2)}%
-        </span>
-      </div>
-      <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-20" preserveAspectRatio="none">
-        <defs>
-          <linearGradient id="sparkGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="currentColor" stopOpacity="0.3" />
-            <stop offset="100%" stopColor="currentColor" stopOpacity="0" />
-          </linearGradient>
-        </defs>
-        <polygon
-          points={`${padding},${height} ${coords} ${width - padding},${height}`}
-          fill="url(#sparkGrad)"
-          className={change >= 0 ? 'text-green-400' : 'text-red-400'}
-        />
-        <polyline
-          points={coords}
-          fill="none"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={change >= 0 ? 'stroke-green-400' : 'stroke-red-400'}
-        />
-      </svg>
-    </div>
-  );
-}
 
 /* ── Sub-components ─────────────────────────────────────────────────── */
 
@@ -309,9 +269,9 @@ export default function TokenRoutePopup({ tokenContract, symbol, onClose }: Prop
   const { t } = useTranslation();
   const btcPrice = useAppStore((s) => s.btcPrice);
   const [detail, setDetail] = useState<LocalRouteDetail | null>(null);
-  const [lineHistory, setLineHistory] = useState<HistoryResponse | null>(null);
-  const [candleHistory, setCandleHistory] = useState<HistoryResponse | null>(null);
+  const [chartHistory, setChartHistory] = useState<HistoryResponse | null>(null);
   const [chartMode, setChartMode] = useState<'line' | 'candle'>('line');
+  const [chartSource, setChartSource] = useState<'motoswap' | 'nativeswap'>('motoswap');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -322,20 +282,18 @@ export default function TokenRoutePopup({ tokenContract, symbol, onClose }: Prop
     try {
       setLoading(true);
       setError(null);
-      const [routeDetail, lineHist, candleHist] = await Promise.all([
+      const [routeDetail, history] = await Promise.all([
         fetchTokenRoutes(tokenContract),
-        fetchTokenHistory(tokenContract, '15m', '24h', false),
-        fetchTokenHistory(tokenContract, '15m', '24h', true),
+        fetchTokenHistory(tokenContract, '1h', 'USD', '1w', chartSource),
       ]);
       setDetail(routeDetail as LocalRouteDetail);
-      setLineHistory(lineHist);
-      setCandleHistory(candleHist);
+      setChartHistory(history);
     } catch (e: any) {
       setError(e?.message ?? 'Failed to load');
     } finally {
       setLoading(false);
     }
-  }, [tokenContract]);
+  }, [tokenContract, chartSource]);
 
   useEffect(() => {
     load();
@@ -347,8 +305,6 @@ export default function TokenRoutePopup({ tokenContract, symbol, onClose }: Prop
     return {
       ...detail,
       price: liveRouteData.bestPriceBtc || detail.price,
-      routeCount: liveRouteData.routeCount ?? detail.routes?.length ?? 0,
-      arbitrage: liveRouteData.arbitrage?.exists ?? detail.arbitrage,
     };
   }, [detail, liveRouteData]);
 
@@ -429,11 +385,13 @@ export default function TokenRoutePopup({ tokenContract, symbol, onClose }: Prop
               <>
                 {/* Price Chart */}
                 <PriceChart
-                  data={chartMode === 'candle' ? candleHistory?.data : lineHistory?.data}
+                  data={chartHistory?.candles ?? []}
                   mode={chartMode}
                   onModeChange={setChartMode}
                   livePrice={displayData.price}
                   color={style.hex}
+                  source={chartSource}
+                  onSourceChange={setChartSource}
                 />
 
                 {/* Route Simulator */}
@@ -441,23 +399,26 @@ export default function TokenRoutePopup({ tokenContract, symbol, onClose }: Prop
 
                 {/* Current Price */}
                 <div className="bg-white/[0.04] border border-white/[0.07] rounded-xl p-4">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1">Current Price</div>
-                  <div className="flex items-baseline gap-3">
-                    <span className="text-2xl font-mono font-bold text-white">{fmtBtc(displayData.price)}</span>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Current Price</div>
+                  <div className="flex flex-col gap-1.5">
                     {btcPrice && parseFloat(displayData.price) > 0 && (
-                      <span className="text-sm text-slate-400 font-mono">
-                        {fmtUsd(parseFloat(displayData.price) * btcPrice)}
-                      </span>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-2xl font-mono font-bold text-white">
+                          ${fmtAutoDecimal(parseFloat(displayData.price) * btcPrice)}
+                        </span>
+                        <span className="text-sm text-slate-400 font-mono">USD</span>
+                      </div>
+                    )}
+                    {parseFloat(displayData.price) > 0 && (
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-lg font-mono font-bold text-slate-300">
+                          {fmtAutoDecimal(parseFloat(displayData.price))}
+                        </span>
+                        <span className="text-sm text-slate-500 font-mono">BTC</span>
+                      </div>
                     )}
                   </div>
-                  {displayData.arbitrage && (
-                    <div className="mt-2 flex items-center gap-1.5 text-[11px] text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded px-2 py-1">
-                      <Zap className="w-3.5 h-3.5" />
-                      <span>Arbitrage opportunity detected ({displayData.spread}% spread)</span>
-                    </div>
-                  )}
                 </div>
-
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
                   <StatBox label="Market Cap" value={fmtBtc(displayData.marketcap)} />
