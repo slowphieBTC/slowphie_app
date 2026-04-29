@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ArrowRight, ShieldCheck, AlertTriangle, TrendingUp, Navigation2, ExternalLink, Activity, Clock, Hash } from 'lucide-react';
+import { X, ExternalLink, Activity, Hash } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { fetchMarketByAddress, type MarketData, type MarketRoute, type MarketLastTrade } from '../api/slowphie';
+import { fetchMarketByAddress, type MarketData } from '../api/slowphie';
+import type { TokenTotal } from '../components/TokenTotalsCard';
 import { getTokenStyle } from '../lib/tokenColors';
 import { useAppStore } from '../store';
 import { BTC_NATIVE } from '../lib/coreTokens';
@@ -11,6 +12,7 @@ import { BTC_NATIVE } from '../lib/coreTokens';
 interface Props {
   tokenContract: string | undefined;
   symbol: string;
+  tokenTotal?: TokenTotal;
   onClose: () => void;
 }
 
@@ -78,20 +80,15 @@ function fmtTimeAgo(ts: number): string {
   return Math.round(diff / 86400) + 'd ago';
 }
 
+function groupByType(items: { type: 'wallet' | 'staked' | 'pending' | 'lp'; amount: number }[]): { type: 'wallet' | 'staked' | 'pending' | 'lp'; total: number }[] {
+  const map = new Map<string, number>();
+  for (const b of items) map.set(b.type, (map.get(b.type) ?? 0) + b.amount);
+  const order: ('wallet' | 'staked' | 'lp' | 'pending')[] = ['wallet', 'staked', 'lp', 'pending'];
+  return order.filter(t => map.has(t)).map(t => ({ type: t, total: map.get(t)! }));
+}
+
 /* ── Sub-components ─────────────────────────────────────────────────── */
 
-function TrustBadge({ trust }: { trust?: string }) {
-  if (!trust) return null;
-  const isOk = trust.toUpperCase() === 'OK';
-  return (
-    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wide ${
-      isOk ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30'
-    }`}>
-      {isOk ? <ShieldCheck className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}
-      {trust}
-    </span>
-  );
-}
 
 function StatBox({ label, value, sub }: { label: string; value: string; sub?: string }) {
   return (
@@ -103,74 +100,7 @@ function StatBox({ label, value, sub }: { label: string; value: string; sub?: st
   );
 }
 
-function RouteCard({ route, btcPrice }: { route: MarketRoute; btcPrice: number | null }) {
-  const priceBtc = parseFloat(route.feeAdjustedPrice || route.price || '0');
-  const usd = btcPrice && priceBtc > 0 ? fmtUsd(priceBtc * btcPrice, false) : '';
-  return (
-    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2.5">
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-1 flex-wrap">
-          {route.path.map((sym, i) => (
-            <span key={i} className="flex items-center gap-1">
-              {i > 0 && <ArrowRight className="w-3 h-3 text-slate-600" />}
-              <span className="text-xs font-bold text-slate-200 bg-white/[0.06] px-1.5 py-0.5 rounded">{sym}</span>
-            </span>
-          ))}
-        </div>
-        <TrustBadge trust={route.trust} />
-      </div>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-        <div className="text-[11px] text-slate-500">Fee-adj price</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{fmtBtc(route.feeAdjustedPrice || route.price)}</div>
-        {usd && (
-          <>
-            <div className="text-[11px] text-slate-500">≈ USD</div>
-            <div className="text-[11px] font-mono text-slate-300 text-right">{usd}</div>
-          </>
-        )}
-        <div className="text-[11px] text-slate-500">Total fees</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{route.totalFeePct.toFixed(1)}%</div>
-        <div className="text-[11px] text-slate-500">Source</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right capitalize">{route.source.replace(/\+/g, ' + ')}</div>
-        <div className="text-[11px] text-slate-500">Confidence</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{Math.round(route.confidence * 100)}%</div>
-      </div>
-    </div>
-  );
-}
 
-function LastTradeCard({ trade }: { trade: MarketLastTrade }) {
-  const { t } = useTranslation();
-  return (
-    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2.5">
-      <div className="flex items-center justify-between gap-2">
-        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('market.lastTrade')}</span>
-        <div className="flex items-center gap-1.5">
-          <span className="text-[10px] text-slate-500 capitalize">{trade.exchange}</span>
-          <TrustBadge trust={trade.trust} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">
-        <div className="text-[11px] text-slate-500">{t('market.pair')}</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{trade.token0} / {trade.token1}</div>
-        <div className="text-[11px] text-slate-500">{t('market.price')}</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{fmtBtc(trade.price)}</div>
-        <div className="text-[11px] text-slate-500">{t('market.amountIn')}</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{fmtTokenAmount(trade.amountIn, trade.token0)} <span className="text-slate-500">{trade.token0}</span></div>
-        <div className="text-[11px] text-slate-500">{t('market.amountOut')}</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{fmtTokenAmount(trade.amountOut, trade.token1)} <span className="text-slate-500">{trade.token1}</span></div>
-        {trade.blockHeight && (
-          <>
-            <div className="text-[11px] text-slate-500">{t('market.block')}</div>
-            <div className="text-[11px] font-mono text-slate-200 text-right">#{trade.blockHeight}</div>
-          </>
-        )}
-        <div className="text-[11px] text-slate-500">{t('market.time')}</div>
-        <div className="text-[11px] font-mono text-slate-400 text-right">{fmtTimestamp(trade.timestamp)}</div>
-      </div>
-    </div>
-  );
-}
 
 /* ── BTC Price Sparkline ─────────────────────────────────────────────── */
 
@@ -372,7 +302,7 @@ function Skeleton() {
 
 /* ── Token Market Popup ──────────────────────────────────────────────── */
 
-export function TokenMarketPopup({ tokenContract, symbol, onClose }: Props) {
+export function TokenMarketPopup({ tokenContract, symbol, tokenTotal, onClose }: Props) {
   const { t } = useTranslation();
   const btcPrice  = useAppStore((s) => s.btcPrice);
   const storeIcons = useAppStore((s) => s.tokenIcons);
@@ -425,12 +355,8 @@ export function TokenMarketPopup({ tokenContract, symbol, onClose }: Props) {
   const addrKey = tokenContract ? `addr:${tokenContract.toLowerCase()}` : null;
   const iconUrl = addrKey ? (storeIcons[addrKey] ?? storeIcons[iconKey]) : storeIcons[iconKey];
 
-  const bestOkRoute  = data?.routes?.find(r => r.trust?.toUpperCase() === 'OK');
-  const otherRoutes  = data?.routes?.filter(r => r !== bestOkRoute) ?? [];
   const priceBtc     = data ? parseFloat(data.price || '0') : 0;
-  const marketcapBtc = data ? parseFloat(data.marketcap || '0') : 0;
   const priceUsd     = btcPrice && priceBtc > 0 ? fmtUsd(priceBtc * btcPrice, false) : '';
-  const mcapUsd      = btcPrice && marketcapBtc > 0 ? fmtUsd(marketcapBtc * btcPrice, false) : '';
 
   const modal = (
     <AnimatePresence>
@@ -498,50 +424,52 @@ export function TokenMarketPopup({ tokenContract, symbol, onClose }: Props) {
             {error && <div className="bg-red-500/10 border border-red-500/25 rounded-xl p-4 text-sm text-red-400 mb-4">{error}</div>}
             {loading && !data && <Skeleton />}
 
-            {data && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {/* Left column */}
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <StatBox label={t('market.marketcap')} value={fmtBtc(data.marketcap)} sub={mcapUsd || undefined} />
-                    <StatBox label={t('market.spread')} value={`${data.spread}%`} sub={data.rawSpread ? `Raw ${data.rawSpread}%` : undefined} />
-                  </div>
-                  {bestOkRoute && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Navigation2 className="w-3.5 h-3.5 text-green-400" />
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('market.bestRoute')}</span>
-                        <TrustBadge trust="OK" />
+            {/* Per-wallet breakdown (Aggregate Token Holdings detail) */}
+            {tokenTotal && (
+              <div className="space-y-3">
+                {(() => {
+                  const walletMap = new Map<string, { amount: number; type: 'wallet' | 'staked' | 'pending' | 'lp' }[]>();
+                  for (const b of tokenTotal.breakdown) {
+                    const key = b.address.toLowerCase();
+                    if (!walletMap.has(key)) walletMap.set(key, []);
+                    walletMap.get(key)!.push({ amount: b.amount, type: b.type });
+                  }
+                  const badgeLabel: Record<string, string> = {
+                    wallet: 'Wallet', staked: 'Staked', pending: 'Pending', lp: 'LP',
+                  };
+                  const badgeCls: Record<string, string> = {
+                    wallet: 'bg-gray-500/20 text-gray-400',
+                    staked: 'bg-brand-500/20 text-brand-400',
+                    pending: 'bg-green-500/20 text-green-400',
+                    lp: 'bg-blue-500/20 text-blue-400',
+                  };
+                  return Array.from(walletMap.entries()).map(([addr, items]) => {
+                    const groups = groupByType(items);
+                    const walletTotalAmt = items.reduce((s, b) => s + b.amount, 0);
+                    return (
+                      <div key={addr} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[11px] font-mono text-slate-400">{addr.slice(0, 6)}…{addr.slice(-4)}</span>
+                          <span className="ml-auto text-xs font-bold text-white font-mono">{fmtBtc(walletTotalAmt)}</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {groups.map(g => (
+                            <div key={g.type} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md ${badgeCls[g.type]}`}>
+                              <span className="text-[10px] font-semibold">{badgeLabel[g.type]}</span>
+                              <span className="text-[10px] font-bold">{fmtBtc(g.total)}</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <RouteCard route={bestOkRoute} btcPrice={btcPrice} />
-                    </div>
-                  )}
-                  {otherRoutes.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <TrendingUp className="w-3.5 h-3.5 text-blue-400" />
-                        <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">{t('market.allRoutes')} · {otherRoutes.length}</span>
-                      </div>
-                      <div className="space-y-2">
-                        {otherRoutes.map((route, i) => (
-                          <RouteCard key={i} route={route} btcPrice={btcPrice} />
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                  {!bestOkRoute && !otherRoutes.length && <div className="text-sm text-slate-600 text-center py-4">No routes available</div>}
-                </div>
+                    );
+                  });
+                })()}
+              </div>
+            )}
 
-                {/* Right column */}
-                <div className="space-y-4">
-                  {data.lastTrade && <LastTradeCard trade={data.lastTrade} />}
-                  {data.id && (
-                    <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3">
-                      <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-1.5">Contract</div>
-                      <p className="text-[10px] font-mono text-slate-400 break-all leading-relaxed">{data.id}</p>
-                    </div>
-                  )}
-                </div>
+            {!tokenTotal && data && (
+              <div className="py-8 text-center text-sm text-slate-600">
+                {/* Empty for now */}
               </div>
             )}
           </div>

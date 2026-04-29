@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LayoutList, LayoutGrid, Wallet } from 'lucide-react';
+import { LayoutList, LayoutGrid, Wallet, BarChart2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { Position } from '../types';
 import { useAppStore } from '../store';
@@ -63,12 +63,12 @@ function TokenIcon({ symbol, contractAddress, color, size = 'md' }: { symbol: st
   return <span className={`text-xs font-bold ${color}`}>{abbr}</span>;
 }
 
-interface TokenBreakdown {
+export interface TokenBreakdown {
   address: string; label: string; amount: number;
   type: 'wallet' | 'staked' | 'pending' | 'lp';
   tokenContract?: string;
 }
-interface TokenTotal {
+export interface TokenTotal {
   symbol: string; tokenContract?: string; total: number; breakdown: TokenBreakdown[];
 }
 
@@ -383,8 +383,9 @@ interface Props {
   positions: Position[];
   selectedToken: string | null;
   onSelectToken: (addr: string | null) => void;
+  onOpenChart?: () => void;
 }
-export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Props) {
+export function TokenTotalsCard({ positions, selectedToken, onSelectToken, onOpenChart }: Props) {
   const { t } = useTranslation();
   const totals       = aggregateTokens(positions);
   const savedAddrs   = useAppStore((s) => s.addresses);
@@ -394,7 +395,7 @@ export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Pro
   const [unit,       setUnit]       = useState<TotalsUnit>('amount');
 
   // Popup state for market info
-  const [popupToken, setPopupToken] = useState<{ tokenContract: string | undefined; symbol: string } | null>(null);
+  const [popupToken, setPopupToken] = useState<TokenTotal | null>(null);
 
   const walletLabel = new Map<string, string>();
   for (const a of savedAddrs) { walletLabel.set(a.address.toLowerCase(), a.label || a.address.slice(0, 8) + '\u2026'); }
@@ -415,6 +416,13 @@ export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Pro
             }`}>
             {detailMode ? <><LayoutGrid className="w-3.5 h-3.5" /> {t('totals.summary')}</> : <><LayoutList className="w-3.5 h-3.5" /> {t('totals.detail')}</>}
           </button>
+          {onOpenChart && (
+            <button onClick={onOpenChart}
+              title="Token Evolutions Chart"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all bg-dark-700/40 border-dark-600/40 text-dark-400 hover:bg-dark-700/70 hover:text-dark-200">
+              <BarChart2 className="w-3.5 h-3.5" /> Chart
+            </button>
+          )}
         </div>
       </div>
       <AnimatePresence mode="wait">
@@ -427,7 +435,7 @@ export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Pro
             const isSelected = selectedToken !== null && tokAddr === selectedToken;
             const handleSelect = () => onSelectToken(isSelected ? null : tokAddr);
             const fmtValue = makeUnitFormatter(tok.symbol, tok.tokenContract, unit, marketPrices, btcPrice);
-            const handleInfoClick = () => setPopupToken({ tokenContract: tok.tokenContract, symbol: tok.symbol });
+            const handleInfoClick = () => setPopupToken(tok);
 
             return detailMode
               ? <DetailCardItem key={tok.tokenContract || tok.symbol} tok={tok} walletLabel={walletLabel} isSelected={isSelected} onSelect={handleSelect} onInfoClick={handleInfoClick} fmtValue={fmtValue} />
@@ -441,6 +449,7 @@ export function TokenTotalsCard({ positions, selectedToken, onSelectToken }: Pro
         <TokenMarketPopup
           tokenContract={popupToken.tokenContract}
           symbol={popupToken.symbol}
+          tokenTotal={popupToken}
           onClose={() => setPopupToken(null)}
         />
       )}

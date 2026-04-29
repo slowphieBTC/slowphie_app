@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { ExternalLink, AlertTriangle } from 'lucide-react';
-import { fetchRouterTokens, type TrackedToken } from '../api/slowphie';
+import { fetchRouterTokens, fetchTrackedTokens, type TrackedToken } from '../api/slowphie';
 import { getTokenStyle } from '../lib/tokenColors';
 import { useAppStore } from '../store';
 import TokenRoutePopup from '../components/TokenRoutePopup';
@@ -72,12 +72,14 @@ const containerVariants = { hidden: {}, visible: { transition: { staggerChildren
 const cardVariants = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.4, 0, 0.2, 1] } } };
 
 /* ── Main component ─────────────────────────────────────────────────── */
+/* ── Main component ─────────────────────────────────────────────────── */
 export default function OpRouter() {
   const { t } = useTranslation();
   const [tokens, setTokens] = useState<TrackedToken[]>([]);
   const [totalTokens, setTotalTokens] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const mergeTokenIcons = useAppStore((s) => s.mergeTokenIcons);
 
   // Filter state
   const [filters, setFilters] = useState<FilterState>({
@@ -100,6 +102,28 @@ export default function OpRouter() {
         limit: 5000,
         offset: 0,
       });
+      // Extract icons from API response and merge into store (collision-safe)
+      const allItems = [...data.tokens, ...data.pools];
+      const symbolIconCount: Record<string, number> = {};
+      for (const t of allItems) {
+        if (t.icon && t.icon.startsWith('http')) {
+          const sym = t.symbol.toUpperCase();
+          symbolIconCount[sym] = (symbolIconCount[sym] ?? 0) + 1;
+        }
+      }
+      const icons: Record<string, string> = {};
+      for (const t of allItems) {
+        if (t.icon && t.icon.startsWith('http')) {
+          const sym = t.symbol.toUpperCase();
+          if ((symbolIconCount[sym] ?? 0) <= 1) {
+            icons[sym] = t.icon;
+          }
+          if (t.address) {
+            icons[`addr:${t.address.toLowerCase()}`] = t.icon;
+          }
+        }
+      }
+      if (Object.keys(icons).length > 0) mergeTokenIcons(icons);
       // Filter tokens: remove BTC (not a real tracked token) and dedupe
       const all = [...data.tokens];
       const seen = new Set<string>();
@@ -117,17 +141,51 @@ export default function OpRouter() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [mergeTokenIcons]);
 
   useEffect(() => {
     load(filters);
   }, [load, filters]);
+
+  // Load ALL token icons once (unfiltered) so non-swappable tokens like ICHI
+  // still have their icons resolved when referenced on the router page.
+  useEffect(() => {
+    let cancelled = false;
+    fetchTrackedTokens()
+      .then((data) => {
+        if (cancelled) return;
+        const allItems = [...data.tokens, ...data.pools];
+        const symbolIconCount: Record<string, number> = {};
+        for (const t of allItems) {
+          if (t.icon && t.icon.startsWith('http')) {
+            const sym = t.symbol.toUpperCase();
+            symbolIconCount[sym] = (symbolIconCount[sym] ?? 0) + 1;
+          }
+        }
+        const icons: Record<string, string> = {};
+        for (const t of allItems) {
+          if (t.icon && t.icon.startsWith('http')) {
+            const sym = t.symbol.toUpperCase();
+            if ((symbolIconCount[sym] ?? 0) <= 1) {
+              icons[sym] = t.icon;
+            }
+            if (t.address) {
+              icons[`addr:${t.address.toLowerCase()}`] = t.icon;
+            }
+          }
+        }
+        if (Object.keys(icons).length > 0) mergeTokenIcons(icons);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [mergeTokenIcons]);
 
   const handleIconClick = (token: TrackedToken) => {
     setPopupToken({ tokenContract: token.address, symbol: token.symbol });
   };
 
   const opscanUrl = (addr: string) => `https://opscan.org/tokens/${addr}?network=mainnet`;
+
 
   return (
     <div className="relative min-h-[calc(100vh-4rem)] bg-grid pb-16 overflow-hidden">
@@ -282,6 +340,22 @@ export default function OpRouter() {
                       <span className="text-gray-500 ml-auto">
                         {fmtTimeAgo(token.swapMeta.lastRouteUpdate)}
                       </span>
+                    </div>
+                  )}
+
+                  {/* Swap pair counts */}
+                  {token.swapPairCounts && (
+                    <div className="flex items-center gap-2 text-[11px]">
+                      {token.swapPairCounts.motoSwap > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          {token.swapPairCounts.motoSwap} MotoSwap
+                        </span>
+                      )}
+                      {token.swapPairCounts.nativeSwap > 0 && (
+                        <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+                          {token.swapPairCounts.nativeSwap} NativeSwap
+                        </span>
+                      )}
                     </div>
                   )}
 

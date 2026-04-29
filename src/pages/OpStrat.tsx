@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { RefreshCw, Wallet, Settings, TrendingUp, Droplets, Coins, Sparkles, Leaf, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +60,11 @@ export default function OpStrat() {
   const { positions, loading, refreshing, error, refresh } = usePositions(addresses.map(a => a.address));
   const [activeFilters, setActiveFilters] = useState<Set<FilterType>>(new Set());
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
+  const [chartOpen, setChartOpen] = useState(false);
+  useEffect(() => {
+    document.body.style.overflow = chartOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [chartOpen]);
   const visibility = useTokenVisibility();
 
   const toggleFilter = (type: FilterType) => {
@@ -100,8 +106,33 @@ export default function OpStrat() {
           <p className="text-gray-400 max-w-md mx-auto text-sm">{t('tracks.heroSubtitle')}</p>
         </motion.div>
 
-        {positions.length > 0 && <TokenEvolutionsCard selectedToken={selectedToken} onClearSelection={() => { setSelectedToken(null); visibility.reset(); }} onDeselectCard={() => setSelectedToken(null)} visibility={visibility} />}
-        {positions.length > 0 && <TokenTotalsCard positions={positions} selectedToken={selectedToken} onSelectToken={(addr) => { if (addr) { setSelectedToken(addr); visibility.selectOnly(addr); } else { setSelectedToken(null); visibility.reset(); } }} />}
+        {positions.length > 0 && <TokenTotalsCard positions={positions} selectedToken={selectedToken} onSelectToken={(addr) => { if (addr) { setSelectedToken(addr); visibility.selectOnly(addr); } else { setSelectedToken(null); visibility.reset(); } }} onOpenChart={() => setChartOpen(true)} />}
+
+        {/* Token Evolutions Chart Popup */}
+        {positions.length > 0 && chartOpen && createPortal(
+          <div
+            onClick={() => setChartOpen(false)}
+            style={{ background: 'rgba(3, 7, 30, 0.82)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)' }}
+            className="fixed inset-0 z-[998] flex items-center justify-center p-4 sm:p-6">
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-full max-w-5xl max-h-[92vh] overflow-hidden rounded-2xl flex flex-col"
+              style={{ background: 'linear-gradient(160deg, #0d1526f8 0%, #080e1ef8 100%)', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 30px 60px -10px rgba(0,0,0,0.8)' }}>
+              {/* Header */}
+              <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] shrink-0">
+                <span className="text-sm font-semibold text-dark-300 uppercase tracking-wider">Token Evolutions</span>
+                <button onClick={() => setChartOpen(false)} className="p-2 rounded-xl hover:bg-white/10 text-slate-500 hover:text-white transition-colors">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              {/* Chart body */}
+              <div className="overflow-y-auto flex-1 p-4">
+                <TokenEvolutionsCard selectedToken={selectedToken} onClearSelection={() => { setSelectedToken(null); visibility.reset(); }} onDeselectCard={() => setSelectedToken(null)} visibility={visibility} />
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
 
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>

@@ -53,6 +53,11 @@ export interface TrackedToken {
   totalSupply:  string;
   icon:         string;
   firstSeenAt:  number;
+  swapPairCounts?: {
+    motoSwap: number;
+    nativeSwap: number;
+    total: number;
+  };
   swapMeta?: {
     routeCount: number;
     bestRouteTrust: string;
