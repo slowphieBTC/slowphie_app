@@ -304,7 +304,8 @@ function Skeleton() {
 
 export function TokenMarketPopup({ tokenContract, symbol, tokenTotal, onClose }: Props) {
   const { t } = useTranslation();
-  const btcPrice  = useAppStore((s) => s.btcPrice);
+  const btcPrice     = useAppStore((s) => s.btcPrice);
+  const marketPrices = useAppStore((s) => s.marketPrices);
   const storeIcons = useAppStore((s) => s.tokenIcons);
   const [data,    setData]    = useState<MarketData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -355,7 +356,7 @@ export function TokenMarketPopup({ tokenContract, symbol, tokenTotal, onClose }:
   const addrKey = tokenContract ? `addr:${tokenContract.toLowerCase()}` : null;
   const iconUrl = addrKey ? (storeIcons[addrKey] ?? storeIcons[iconKey]) : storeIcons[iconKey];
 
-  const priceBtc     = data ? parseFloat(data.price || '0') : 0;
+  const priceBtc     = data ? parseFloat(data.rawPriceBtc || data.price || '0') : 0;
   const priceUsd     = btcPrice && priceBtc > 0 ? fmtUsd(priceBtc * btcPrice, false) : '';
 
   const modal = (
@@ -408,7 +409,7 @@ export function TokenMarketPopup({ tokenContract, symbol, tokenTotal, onClose }:
                 {loading && !data && <span className="text-xs text-slate-500 animate-pulse">{t('market.loading')}</span>}
                 {data && (
                   <>
-                    <span className="text-2xl font-black text-white font-mono">{fmtBtc(data.price)}</span>
+                    <span className="text-2xl font-black text-white font-mono">{fmtBtc(data.rawPriceBtc || data.price)}</span>
                     {priceUsd && <span className="text-base font-semibold text-slate-300">{priceUsd}</span>}
                   </>
                 )}
@@ -425,47 +426,77 @@ export function TokenMarketPopup({ tokenContract, symbol, tokenTotal, onClose }:
             {loading && !data && <Skeleton />}
 
             {/* Per-wallet breakdown (Aggregate Token Holdings detail) */}
-            {tokenTotal && (
-              <div className="space-y-3">
-                {(() => {
-                  const walletMap = new Map<string, { amount: number; type: 'wallet' | 'staked' | 'pending' | 'lp' }[]>();
-                  for (const b of tokenTotal.breakdown) {
-                    const key = b.address.toLowerCase();
-                    if (!walletMap.has(key)) walletMap.set(key, []);
-                    walletMap.get(key)!.push({ amount: b.amount, type: b.type });
-                  }
-                  const badgeLabel: Record<string, string> = {
-                    wallet: 'Wallet', staked: 'Staked', pending: 'Pending', lp: 'LP',
-                  };
-                  const badgeCls: Record<string, string> = {
-                    wallet: 'bg-gray-500/20 text-gray-400',
-                    staked: 'bg-brand-500/20 text-brand-400',
-                    pending: 'bg-green-500/20 text-green-400',
-                    lp: 'bg-blue-500/20 text-blue-400',
-                  };
-                  return Array.from(walletMap.entries()).map(([addr, items]) => {
+            {tokenTotal && (() => {
+              const tokenKey = tokenTotal.tokenContract ? tokenTotal.tokenContract.toLowerCase() : tokenTotal.symbol;
+              const tokenPriceBtc = data ? parseFloat(data.rawPriceBtc || data.price || '0') : (marketPrices[tokenKey] ?? 0);
+              const fmtAmt = (n: number): string => {
+                if (n >= 1_000_000_000_000) return (n / 1_000_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'T';
+                if (n >= 1_000_000_000)     return (n / 1_000_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'B';
+                if (n >= 1_000_000)         return (n / 1_000_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'M';
+                if (n >= 1_000)             return (n / 1_000).toLocaleString(undefined, { maximumFractionDigits: 2 }) + 'K';
+                return n.toLocaleString(undefined, { maximumFractionDigits: 4 });
+              };
+              const walletMap = new Map<string, { amount: number; type: 'wallet' | 'staked' | 'pending' | 'lp' }[]>();
+              for (const b of tokenTotal.breakdown) {
+                const key = b.address.toLowerCase();
+                if (!walletMap.has(key)) walletMap.set(key, []);
+                walletMap.get(key)!.push({ amount: b.amount, type: b.type });
+              }
+              const badgeLabel: Record<string, string> = { wallet: 'Wallet', staked: 'Staked', pending: 'Pending', lp: 'LP' };
+              const badgeCls: Record<string, string> = {
+                wallet:  'bg-gray-500/20 text-gray-400',
+                staked:  'bg-brand-500/20 text-brand-400',
+                pending: 'bg-green-500/20 text-green-400',
+                lp:      'bg-blue-500/20 text-blue-400',
+              };
+              return (
+                <div className="space-y-3">
+                  {Array.from(walletMap.entries()).map(([addr, items]) => {
                     const groups = groupByType(items);
-                    const walletTotalAmt = items.reduce((s, b) => s + b.amount, 0);
+                    const totalAmt   = items.reduce((s, b) => s + b.amount, 0);
+                    const totalBtc   = totalAmt * tokenPriceBtc;
+                    const totalUsd   = btcPrice ? totalBtc * btcPrice : null;
                     return (
-                      <div key={addr} className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-slate-400">{addr.slice(0, 6)}…{addr.slice(-4)}</span>
-                          <span className="ml-auto text-xs font-bold text-white font-mono">{fmtBtc(walletTotalAmt)}</span>
-                        </div>
-                        <div className="flex flex-wrap gap-1">
-                          {groups.map(g => (
-                            <div key={g.type} className={`flex items-center gap-1 px-1.5 py-0.5 rounded-md ${badgeCls[g.type]}`}>
-                              <span className="text-[10px] font-semibold">{badgeLabel[g.type]}</span>
-                              <span className="text-[10px] font-bold">{fmtBtc(g.total)}</span>
+                      <div key={addr} className="bg-white/[0.03] border border-white/[0.06] rounded-xl overflow-hidden">
+                        {/* Wallet header row */}
+                        <div className="flex items-center gap-3 px-4 py-2.5 border-b border-white/[0.05]" style={{ background: `${cfg.hex}08` }}>
+                          <span className="text-[11px] font-mono text-slate-400 flex-1 truncate">{addr.slice(0, 8)}…{addr.slice(-6)}</span>
+                          <div className="flex items-center gap-3">
+                            <div className="text-right">
+                              <div className={`text-xs font-bold ${cfg.color} font-mono`}>{fmtAmt(totalAmt)} <span className="text-[10px] font-medium text-slate-500">{tokenTotal.symbol}</span></div>
                             </div>
-                          ))}
+                            {tokenPriceBtc > 0 && (
+                              <div className="text-right border-l border-white/[0.06] pl-3">
+                                <div className="text-xs font-bold text-slate-200 font-mono">{fmtBtc(totalBtc)}</div>
+                                {totalUsd !== null && <div className="text-[10px] text-slate-500 font-mono">{fmtUsd(totalUsd)}</div>}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                        {/* Type badges */}
+                        <div className="flex flex-wrap gap-1.5 px-4 py-2.5">
+                          {groups.map(g => {
+                            const gBtc = g.total * tokenPriceBtc;
+                            const gUsd = btcPrice ? gBtc * btcPrice : null;
+                            return (
+                              <div key={g.type} className={`flex flex-col px-2 py-1 rounded-lg border border-white/[0.04] ${badgeCls[g.type]}`}>
+                                <div className="flex items-center gap-1">
+                                  <span className="text-[10px] font-bold uppercase tracking-wide">{badgeLabel[g.type]}</span>
+                                </div>
+                                <span className="text-[10px] font-mono font-semibold">{fmtAmt(g.total)} {tokenTotal.symbol}</span>
+                                {tokenPriceBtc > 0 && (
+                                  <span className="text-[10px] font-mono text-slate-400">{fmtBtc(gBtc)}{gUsd !== null ? ` · ${fmtUsd(gUsd)}` : ''}</span>
+                                )}
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     );
-                  });
-                })()}
-              </div>
-            )}
+                  })}
+                </div>
+              );
+            })()}
 
             {!tokenTotal && data && (
               <div className="py-8 text-center text-sm text-slate-600">

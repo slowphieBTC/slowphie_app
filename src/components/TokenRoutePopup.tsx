@@ -150,6 +150,10 @@ function StatBox({ label, value, sub }: { label: string; value: string; sub?: st
 }
 
 function RouteCard({ route, index }: { route: any; index: number }) {
+  const btcPrice = useAppStore((s) => s.btcPrice);
+  const priceBtc = parseFloat(route.feeAdjustedPrice || route.price || '0');
+  const priceUsd = priceBtc * (btcPrice ?? 0);
+
   return (
     <div className="bg-white/[0.03] border border-white/[0.06] rounded-xl p-3 space-y-2">
       <div className="flex items-center justify-between gap-2">
@@ -166,7 +170,10 @@ function RouteCard({ route, index }: { route: any; index: number }) {
       </div>
       <div className="grid grid-cols-2 gap-x-6 gap-y-1">
         <div className="text-[11px] text-slate-500">Price</div>
-        <div className="text-[11px] font-mono text-slate-200 text-right">{fmtBtc(route.feeAdjustedPrice || route.price)}</div>
+        <div className="text-right">
+          <div className="text-[11px] font-mono text-slate-200">{fmtBtc(priceBtc)} <span className="text-slate-500">BTC</span></div>
+          {(btcPrice ?? 0) > 0 && <div className="text-[10px] font-mono text-slate-400">{fmtUsdSmart(priceUsd)}</div>}
+        </div>
         <div className="text-[11px] text-slate-500">Fees</div>
         <div className="text-[11px] font-mono text-slate-200 text-right">{route.totalFeePct?.toFixed?.(1) ?? '0'}%</div>
         <div className="text-[11px] text-slate-500">Source</div>
@@ -176,15 +183,46 @@ function RouteCard({ route, index }: { route: any; index: number }) {
   );
 }
 
-/* ── Route Simulator ────────────────────────────────────────────────── */
+
+function fmtUsdSmart(val: number): string {
+  if (!isFinite(val) || Number.isNaN(val)) return '—';
+  const abs = Math.abs(val);
+  if (abs >= 1e9) return '$' + (val / 1e9).toFixed(2) + 'B';
+  if (abs >= 1e6) return '$' + (val / 1e6).toFixed(2) + 'M';
+  if (abs >= 1e3) return '$' + (val / 1e3).toFixed(2) + 'K';
+  if (abs >= 1) return '$' + val.toFixed(2);
+  return '$' + fmtAutoDecimal(val);
+}
+
+/* ── Route Simulator ──────────────────────────────────────────────── */
 
 function RouteSimulator({ routes, bestPrice }: { routes: any[]; bestPrice: string }) {
-  const [amount, setAmount] = useState<string>('1000');
+  const btcPrice = useAppStore((s) => s.btcPrice);
+  const [amount, setAmount] = useState<string>('100');
+  const [mode, setMode] = useState<'usd' | 'btc'>('usd');
   const [showSim, setShowSim] = useState(false);
+
+  const handleModeChange = useCallback((newMode: 'usd' | 'btc') => {
+    if (newMode === mode) return;
+    const val = parseFloat(amount) || 0;
+    if (newMode === 'btc' && (btcPrice ?? 0) > 0) {
+      setAmount((val / btcPrice!).toFixed(6));
+    } else if (newMode === 'usd' && (btcPrice ?? 0) > 0) {
+      setAmount((val * btcPrice!).toFixed(2));
+    }
+    setMode(newMode);
+  }, [mode, amount, btcPrice]);
+
+  const btcIn = useMemo(() => {
+    const val = parseFloat(amount) || 0;
+    if (val <= 0) return 0;
+    if (mode === 'btc') return val;
+    if (!btcPrice || btcPrice <= 0) return 0;
+    return val / btcPrice;
+  }, [amount, mode, btcPrice]);
 
   const simulations = useMemo(() => {
     if (!routes || routes.length === 0 || !bestPrice) return [];
-    const btcIn = parseFloat(amount) || 0;
     if (btcIn <= 0) return [];
 
     return routes.map((route: any) => {
@@ -193,6 +231,9 @@ function RouteSimulator({ routes, bestPrice }: { routes: any[]; bestPrice: strin
       const tokensOut = btcIn / price;
       const feeAmount = tokensOut * (feePct / 100);
       const netTokens = tokensOut - feeAmount;
+      const feeBtc = btcIn * (feePct / 100);
+      const feeUsd = feeBtc * (btcPrice || 0);
+      const priceUsd = price * (btcPrice || 0);
       return {
         ...route,
         btcIn,
@@ -200,9 +241,12 @@ function RouteSimulator({ routes, bestPrice }: { routes: any[]; bestPrice: strin
         feeAmount,
         netTokens,
         feePct,
+        feeBtc,
+        feeUsd,
+        priceUsd,
       };
     }).sort((a: any, b: any) => b.netTokens - a.netTokens);
-  }, [routes, bestPrice, amount]);
+  }, [routes, bestPrice, btcIn, btcPrice]);
 
   return (
     <div className="bg-white/[0.04] border border-white/[0.07] rounded-xl overflow-hidden">
@@ -214,32 +258,58 @@ function RouteSimulator({ routes, bestPrice }: { routes: any[]; bestPrice: strin
           <Calculator className="w-3.5 h-3.5" />
           Route Simulator
         </span>
-        <span className={`text-[10px] transition-transform ${showSim ? 'rotate-180' : ''}`}>▼</span>
+        <span className={`text-[10px] transition-transform ${showSim ? 'rotate-180' : ''}` }>▼</span>
       </button>
       {showSim && (
         <div className="px-4 pb-4 space-y-3 border-t border-white/[0.06]">
-          <div className="pt-3 flex items-center gap-2">
-            <span className="text-xs text-slate-500">BTC Amount:</span>
-            <input
-              type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="flex-1 bg-dark-900/60 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-white/20"
-              min="0"
-              step="0.001"
-            />
-            <span className="text-xs text-slate-500 font-mono">₿</span>
+          <div className="pt-3 space-y-1.5">
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 shrink-0">{mode === 'usd' ? 'USD Amount:' : 'BTC Amount:'}</span>
+              <input
+                type="number"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="flex-1 min-w-0 bg-dark-900/60 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-white/20"
+                min="0"
+                step={mode === 'usd' ? '10' : '0.0001'}
+              />
+              {/* USD / BTC toggle group */}
+              <div className="flex items-stretch rounded-lg border border-white/10 overflow-hidden shrink-0 text-[11px] font-semibold">
+                <button
+                  onClick={() => handleModeChange('usd')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 transition-colors border-r border-white/10 ${mode === 'usd' ? 'bg-amber-500/20 text-amber-400' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'}`}
+                >
+                  <span className="font-bold text-sm leading-none">$</span>
+                  <span>USD</span>
+                </button>
+                <button
+                  onClick={() => handleModeChange('btc')}
+                  className={`flex items-center gap-1 px-2.5 py-1.5 transition-colors ${mode === 'btc' ? 'bg-amber-500/20 text-amber-400' : 'text-slate-500 hover:text-slate-300 hover:bg-white/[0.04]'}`}
+                >
+                  <img
+                    src="https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png"
+                    alt="BTC"
+                    className="w-3.5 h-3.5 rounded-full shrink-0"
+                  />
+                  <span>BTC</span>
+                </button>
+              </div>
+            </div>
+            {(btcPrice ?? 0) > 0 && parseFloat(amount) > 0 && (
+              <div className="text-[10px] text-slate-500 font-mono pl-1">
+                {mode === 'usd'
+                  ? `≈ ${fmtBtc(btcIn)} BTC  (1 BTC = ${fmtUsd(btcPrice!)})`
+                  : `≈ ${fmtUsd((parseFloat(amount) || 0) * btcPrice!)}  (1 BTC = ${fmtUsd(btcPrice!)})`
+                }
+              </div>
+            )}
           </div>
           {simulations.length > 0 && (
             <div className="space-y-2">
               {simulations.slice(0, 3).map((sim: any, i: number) => (
                 <div
                   key={i}
-                  className={`p-2.5 rounded-lg border text-[11px] ${
-                    i === 0
-                      ? 'bg-green-500/[0.04] border-green-500/20'
-                      : 'bg-white/[0.02] border-white/[0.06]'
-                  }`}
+                  className={`p-2.5 rounded-lg border text-[11px] ${i === 0 ? 'bg-green-500/[0.04] border-green-500/20' : 'bg-white/[0.02] border-white/[0.06]'}`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-slate-300">{sim.path?.join(' → ') || 'Direct'}</span>
@@ -249,9 +319,16 @@ function RouteSimulator({ routes, bestPrice }: { routes: any[]; bestPrice: strin
                     <span className="text-slate-500">Output</span>
                     <span className="font-mono text-slate-200 text-right">{sim.netTokens.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
                     <span className="text-slate-500">Fees</span>
-                    <span className="font-mono text-red-400 text-right">-{sim.feeAmount.toLocaleString(undefined, { maximumFractionDigits: 4 })} ({sim.feePct.toFixed(1)}%)</span>
-                    <span className="text-slate-500">Price</span>
-                    <span className="font-mono text-slate-200 text-right">{fmtBtc(sim.price)}</span>
+                    <span className="font-mono text-red-400 text-right">
+                      {mode === 'usd'
+                        ? `-${fmtUsdSmart(sim.feeUsd)} (${sim.feePct.toFixed(1)}%)`
+                        : `-${fmtBtc(sim.feeBtc)} (${sim.feePct.toFixed(1)}%)`
+                      }
+                    </span>
+                    <span className="text-slate-500">Price / token</span>
+                    <span className="font-mono text-slate-200 text-right">
+                      {mode === 'usd' ? fmtUsdSmart((parseFloat(sim.feeAdjustedPrice || sim.price) || 0) * (btcPrice ?? 0)) : fmtBtc(sim.feeAdjustedPrice || sim.price)}
+                    </span>
                   </div>
                 </div>
               ))}
@@ -399,7 +476,7 @@ export default function TokenRoutePopup({ tokenContract, symbol, onClose }: Prop
 
                 {/* Current Price */}
                 <div className="bg-white/[0.04] border border-white/[0.07] rounded-xl p-4">
-                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Current Price</div>
+                  <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Current Best Price</div>
                   <div className="flex flex-col gap-1.5">
                     {btcPrice && parseFloat(displayData.price) > 0 && (
                       <div className="flex items-baseline gap-2">
@@ -421,7 +498,7 @@ export default function TokenRoutePopup({ tokenContract, symbol, onClose }: Prop
                 </div>
                 {/* Stats Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                  <StatBox label="Market Cap" value={fmtBtc(displayData.marketcap)} />
+                  <StatBox label="Market Cap" value={fmtUsd((parseFloat(displayData.marketcap) || 0) * (btcPrice ?? 0))} />
                   <StatBox label="Routes" value={String(displayData.routes?.length ?? 0)} />
                   <StatBox label="Buy Tax" value={`${displayData.buyTax ?? 0}%`} />
                   <StatBox label="Sell Tax" value={`${displayData.sellTax ?? 0}%`} />

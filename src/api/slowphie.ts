@@ -251,7 +251,9 @@ export interface MarketData {
   name:       string;
   symbol:     string;
   /** Best-route price in BTC (routes[0].price = lowest/best price for buyer). "0" = no market */
-  price:      string;
+  price:          string;
+  /** Raw price in BTC directly from market data (preferred for value calculations) */
+  rawPriceBtc:    string;
   marketcap:  string;        // in BTC
   lastTrade:  MarketLastTrade | null;
   routes:     MarketRoute[]; // sorted: routes[0] = lowest price (best for buyer)

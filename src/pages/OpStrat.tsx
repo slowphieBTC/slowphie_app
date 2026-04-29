@@ -9,6 +9,7 @@ import { PositionCard } from '../components/PositionCard';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
 import { TokenTotalsCard } from '../components/TokenTotalsCard';
+import type { TotalsUnit } from '../components/TokenTotalsCard';
 import { TokenEvolutionsCard } from '../components/TokenEvolutionsCard';
 import { useTokenVisibility } from '../hooks/useTokenVisibility';
 import { BTC_NATIVE } from '../lib/coreTokens';
@@ -61,6 +62,7 @@ export default function OpStrat() {
   const [activeFilters, setActiveFilters] = useState<Set<FilterType>>(new Set());
   const [selectedToken, setSelectedToken] = useState<string | null>(null);
   const [chartOpen, setChartOpen] = useState(false);
+  const [unit, setUnit] = useState<TotalsUnit>('amount');
   useEffect(() => {
     document.body.style.overflow = chartOpen ? 'hidden' : '';
     return () => { document.body.style.overflow = ''; };
@@ -106,7 +108,7 @@ export default function OpStrat() {
           <p className="text-gray-400 max-w-md mx-auto text-sm">{t('tracks.heroSubtitle')}</p>
         </motion.div>
 
-        {positions.length > 0 && <TokenTotalsCard positions={positions} selectedToken={selectedToken} onSelectToken={(addr) => { if (addr) { setSelectedToken(addr); visibility.selectOnly(addr); } else { setSelectedToken(null); visibility.reset(); } }} onOpenChart={() => setChartOpen(true)} />}
+        {positions.length > 0 && <TokenTotalsCard positions={positions} selectedToken={selectedToken} onSelectToken={(addr) => { if (addr) { setSelectedToken(addr); visibility.selectOnly(addr); } else { setSelectedToken(null); visibility.reset(); } }} onOpenChart={() => setChartOpen(true)} unit={unit} onUnitChange={setUnit} />}
 
         {/* Token Evolutions Chart Popup */}
         {positions.length > 0 && chartOpen && createPortal(
@@ -207,7 +209,7 @@ export default function OpStrat() {
                       <AnimatePresence>
                         {filtered.map((pos: Position, i: number) => (
                           <motion.div key={`${pos.id}-${i}`} initial={{ opacity: 0, scale: 0.97 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} transition={{ duration: 0.15, delay: i * 0.03 }}>
-                            <PositionCard position={pos} index={i} />
+                            <PositionCard position={pos} index={i} unit={unit} />
                           </motion.div>
                         ))}
                       </AnimatePresence>

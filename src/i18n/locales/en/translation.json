@@ -340,7 +340,7 @@
     "lockDays": "{{days}}d lock"
   },
   "totals": {
-    "aggregateHoldings": "Aggregate Token Holdings",
+    "aggregateHoldings": "Token Holdings",
     "summary": "Summary",
     "detail": "Detail",
     "switchToSummary": "Switch to summary view",

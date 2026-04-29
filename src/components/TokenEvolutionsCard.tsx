@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, memo, useCallback } from 'react';
+import { useEffect, useRef, useState, memo } from 'react';
 import {
   createChart,
   ColorType,
@@ -9,12 +9,13 @@ import {
   type Time,
 } from 'lightweight-charts';
 import { motion, AnimatePresence } from 'framer-motion';
-import { TrendingUp, Database, Loader2, AlertCircle, Eye, EyeOff, RotateCcw, ChevronDown, X } from 'lucide-react';
+import { TrendingUp, Database, Loader2, AlertCircle, RotateCcw, ChevronDown, X } from 'lucide-react';
 import { usePortfolioHistory, type TimeRange, type ViewMode, type ChartSeries } from '../hooks/usePortfolioHistory';
 import { useTokenVisibility, type TokenVisibilityEntry } from '../hooks/useTokenVisibility';
 import { BTC_NATIVE } from '../lib/coreTokens';
 import { getTokenHex as getTokenHexUnified } from '../lib/tokenColors';
 import { clearAllSnapshots } from '../lib/snapshotStore';
+import { useAppStore } from '../store';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -98,7 +99,7 @@ function deriveViewMode(unit: Unit, breakdown: Breakdown, hasSelection: boolean)
   return ['total_btc', false]; // btc
 }
 
-const CHART_HEIGHT = 240;
+const CHART_HEIGHT = 380;
 
 // Token hex color lookup — delegates to unified tokenColors module (address-first)
 function getTokenHex(symbol: string): string {
@@ -248,20 +249,43 @@ function Legend({ series }: { series: ChartSeries[] }) {
 // ── Token pill (filter panel) ─────────────────────────────────────────────────
 
 function TokenPill({ entry, onToggle }: { entry: TokenVisibilityEntry; onToggle: (addr: string) => void }) {
-  const coreStyle      = entry.isCore
-    ? 'border-dark-600/60 bg-dark-700/40 text-dark-200'
-    : 'border-dark-700/40 bg-dark-800/30 text-dark-500';
-  const hiddenOverlay  = !entry.isVisible ? 'opacity-40 line-through' : '';
+  const storeIcons = useAppStore((s) => s.tokenIcons);
+  const iconUrl = storeIcons[`addr:${entry.address.toLowerCase()}`] ?? storeIcons[entry.symbol.toUpperCase()];
+  const hex = getTokenHex(entry.symbol);
+
   return (
     <button
       onClick={() => onToggle(entry.address)}
       title={`${entry.isVisible ? 'Hide' : 'Show'} ${entry.symbol} (${entry.isCore ? 'core' : 'discovered'})`}
-      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-semibold transition-all hover:opacity-100 ${coreStyle} ${hiddenOverlay}`}
+      className="flex flex-col items-center gap-1.5 px-2 py-2.5 rounded-xl border text-[10px] font-semibold transition-all active:scale-95 w-full"
+      style={{
+        backgroundColor: entry.isVisible ? `${hex}18` : 'rgba(10,10,20,0.55)',
+        borderColor:     entry.isVisible ? `${hex}55` : 'rgba(55,55,75,0.35)',
+        color:           entry.isVisible ? '#e5e7eb' : '#6b7280',
+        opacity:         entry.isVisible ? 1 : 0.4,
+        filter:          entry.isVisible ? 'none' : 'grayscale(1)',
+        boxShadow:       entry.isVisible ? `0 0 4px ${hex}25` : 'none',
+        transitionProperty: 'all',
+        transitionDuration: '150ms',
+      }}
     >
-      {entry.isVisible
-        ? <Eye    className="w-3 h-3 shrink-0" />
-        : <EyeOff className="w-3 h-3 shrink-0 text-dark-600" />}
-      {entry.symbol}
+      {iconUrl ? (
+        <img
+          src={iconUrl}
+          alt={entry.symbol}
+          className="w-6 h-6 rounded-full object-cover shrink-0"
+          style={entry.isVisible ? { boxShadow: `0 0 3px ${hex}30` } : {}}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+        />
+      ) : (
+        <span
+          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+          style={{ backgroundColor: `${hex}30`, color: hex }}
+        >
+          {entry.symbol.slice(0, 2).toUpperCase()}
+        </span>
+      )}
+      <span className="truncate max-w-[52px] text-center leading-tight">{entry.symbol}</span>
     </button>
   );
 }
@@ -283,26 +307,23 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
   const hiddenCount       = entries.filter(e => !e.isVisible).length;
 
   return (
-    <motion.div
-      key="filter-panel"
-      initial={{ opacity: 0, height: 0 }}
-      animate={{ opacity: 1, height: 'auto' }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.18 }}
-      className="overflow-hidden"
-    >
-      <div className="border border-dark-700/50 rounded-xl bg-dark-900/40 p-4 mb-4 space-y-3">
+    <div>
+      {/* Section divider */}
+      <div className="mt-4 border-t border-dark-700/40" />
+
+      {/* Game-controller styled container */}
+      <div className="mt-4 bg-dark-900/60 border border-dark-700/50 rounded-2xl p-4 space-y-3">
 
         {/* Header row */}
         <div className="flex items-center justify-between">
-          <span className="text-[11px] font-semibold text-dark-400 uppercase tracking-wider">Token Filter</span>
+          <span className="text-[11px] font-semibold text-dark-400 uppercase tracking-wider">TOKEN FILTER</span>
           <div className="flex items-center gap-3">
             {hiddenCount > 0 && (
               <span className="text-[11px] text-dark-600">{hiddenCount} hidden</span>
             )}
             <button
               onClick={() => { onReset(); onDeselectCard(); }}
-              className="flex items-center gap-1 text-[11px] text-dark-600 hover:text-dark-300 transition-colors"
+              className="flex items-center gap-1 text-[11px] text-dark-600 hover:text-dark-300 transition-colors active:scale-95"
               title="Reset to defaults"
             >
               <RotateCcw className="w-3 h-3" /> Reset
@@ -310,13 +331,17 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
           </div>
         </div>
 
-        {/* Core tokens */}
+        {/* Core tokens — responsive grid */}
         {coreEntries.length > 0 && (
           <div>
-            <div className="text-[10px] font-semibold text-dark-500 uppercase tracking-wider mb-1.5">Core</div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="text-[10px] font-semibold text-dark-500 uppercase tracking-wider mb-2">Core</div>
+            <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
               {coreEntries.map(e => (
-                <TokenPill key={e.address} entry={e} onToggle={(addr) => { onToggleToken(addr); onDeselectCard(); }} />
+                <TokenPill
+                  key={e.address}
+                  entry={e}
+                  onToggle={(addr) => { onToggleToken(addr); onDeselectCard(); }}
+                />
               ))}
             </div>
           </div>
@@ -324,35 +349,39 @@ function FilterPanel({ entries, showDiscovered, onToggleToken, onToggleDiscovere
 
         {/* Discovered tokens */}
         <div>
-          <div className="flex items-center justify-between mb-1.5">
+          <div className="flex items-center justify-between mb-2">
             <div className="text-[10px] font-semibold text-dark-500 uppercase tracking-wider">
               Discovered{discoveredEntries.length > 0 && ` (${discoveredEntries.length})`}
             </div>
             {/* Master toggle */}
             <button
               onClick={() => { onToggleDiscovered(); onDeselectCard(); }}
-              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all ${
+              className={`flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all active:scale-95 ${
                 showDiscovered
                   ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
                   : 'bg-dark-800/40 border-dark-600/40 text-dark-500 hover:text-dark-300'
               }`}
             >
-              {showDiscovered ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-              Show all discovered
+              Show discovered
             </button>
           </div>
           {discoveredEntries.length === 0 ? (
             <span className="text-[11px] text-dark-700 italic">No discovered tokens in history yet</span>
           ) : (
-            <div className="flex flex-wrap gap-1.5">
+            <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-2">
               {discoveredEntries.map(e => (
-                <TokenPill key={e.address} entry={e} onToggle={(addr) => { onToggleToken(addr); onDeselectCard(); }} />
+                <TokenPill
+                  key={e.address}
+                  entry={e}
+                  onToggle={(addr) => { onToggleToken(addr); onDeselectCard(); }}
+                />
               ))}
             </div>
           )}
         </div>
+
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -376,7 +405,6 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, onDeselectC
   const [timeRange,  setTimeRange]  = useState<TimeRange>('24H');
   const [unit,       setUnit]       = useState<Unit>('btc');
   const [breakdown,  setBreakdown]  = useState<Breakdown>('none');
-  const [filterOpen, setFilterOpen] = useState(false);
   const [clearing,   setClearing]   = useState(false);
 
   const [viewMode, showRawAmount] = deriveViewMode(unit, breakdown, !!selectedToken);
@@ -402,9 +430,6 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, onDeselectC
   // Reset breakdown when a card is selected (single-token mode overrides breakdown)
   useEffect(() => { if (selectedToken) setBreakdown('none'); }, [selectedToken]);
 
-  // Count visible tokens in chart for badge
-  const visibleInChart = selectedToken ? 1 : filterEntries.filter(e => e.isVisible).length;
-
   // Resolve symbol for selected token chip
   const selectedSymbol = selectedToken
     ? (selectedToken === BTC_NATIVE ? 'BTC' : filterEntries.find(e => e.address === selectedToken)?.symbol ?? selectedToken)
@@ -419,19 +444,8 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, onDeselectC
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+        {/* ── LEFT: UNIT group ── */}
         <div className="flex items-center gap-2">
-          <h2 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">
-            Token Evolutions
-          </h2>
-          {isSaving && (
-            <span className="flex items-center gap-1 text-[10px] text-brand-400 font-medium">
-              <Loader2 className="w-3 h-3 animate-spin" /> saving
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* ── UNIT group ── */}
           <div className="flex items-center gap-0.5 bg-dark-900/60 rounded-lg p-0.5">
             {(['btc', 'usd', 'amount'] as Unit[]).map(u => {
               const isDisabled = u === 'amount' && breakdown === 'per_wallet';
@@ -461,10 +475,15 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, onDeselectC
               );
             })}
           </div>
+          {isSaving && (
+            <span className="flex items-center gap-1 text-[10px] text-brand-400 font-medium">
+              <Loader2 className="w-3 h-3 animate-spin" /> saving
+            </span>
+          )}
+        </div>
 
-          {/* ── Divider ── */}
-          <div className="w-px h-4 bg-dark-600/60" />
-
+        {/* ── RIGHT: Breakdown + Time range ── */}
+        <div className="flex items-center gap-2 flex-wrap">
           {/* ── Breakdown group ── */}
           <div className="flex items-center gap-0.5 bg-dark-900/60 rounded-lg p-0.5">
             {(['per_token', 'per_wallet'] as Breakdown[]).map(b => (
@@ -486,56 +505,10 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, onDeselectC
             ))}
           </div>
 
-          {/* ── Eye / filter toggle ── */}
-          <button
-            onClick={() => setFilterOpen(v => !v)}
-            title={filterOpen ? 'Hide token filter' : 'Show token filter'}
-            className={`relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition-all ${
-              filterOpen
-                ? 'bg-brand-500/20 border-brand-500/40 text-brand-400'
-                : 'bg-dark-700/40 border-dark-600/40 text-dark-400 hover:text-dark-200 hover:border-dark-500/60'
-            }`}
-          >
-            {filterOpen ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-            Tokens
-            {!filterOpen && (
-              <span
-                className={`absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full text-[9px] font-bold flex items-center justify-center ${selectedToken ? ''  : 'text-white'}`}
-                style={{
-                backgroundColor: selectedToken
-                  ? `${getTokenHex(selectedSymbol ?? '')}40`
-                  : '#f97316',
-                boxShadow: selectedToken
-                  ? `0 0 0 1px ${getTokenHex(selectedSymbol ?? '')}70`
-                  : undefined,
-                color: selectedToken ? getTokenHex(selectedSymbol ?? '') : 'white',
-              }}
-              >
-                {visibleInChart}
-              </span>
-            )}
-          </button>
-
           {/* ── Time range selector ── */}
           <TimeRangeDropdown value={timeRange} onChange={setTimeRange} />
         </div>
       </div>
-
-      {/* Collapsible filter panel */}
-      <AnimatePresence>
-        {filterOpen && (
-          <FilterPanel
-            entries={filterEntries}
-            showDiscovered={visibility.showDiscovered}
-            onToggleToken={visibility.toggleToken}
-            onToggleDiscovered={visibility.toggleShowDiscovered}
-            onReset={visibility.reset}
-            onDeselectCard={onDeselectCard}
-          />
-        )}
-      </AnimatePresence>
-
-
 
       {/* Error */}
       {error && (
@@ -564,30 +537,40 @@ function TokenEvolutionsCardInner({ selectedToken, onClearSelection, onDeselectC
             </button>
           </div>
         )}
-      {noHistory ? (
-        <div className="flex flex-col items-center justify-center gap-3 text-center" style={{ height: CHART_HEIGHT }}>
-          <div className="text-3xl">📊</div>
-          <div>
-            <div className="text-sm font-semibold text-white">No history yet</div>
-            <div className="text-xs text-gray-600 mt-1">
-              A snapshot is recorded every new block after positions load.
-              <br />Check back after the next refresh.
+        {noHistory ? (
+          <div className="flex flex-col items-center justify-center gap-3 text-center" style={{ height: CHART_HEIGHT }}>
+            <div className="text-3xl">📊</div>
+            <div>
+              <div className="text-sm font-semibold text-white">No history yet</div>
+              <div className="text-xs text-gray-600 mt-1">
+                A snapshot is recorded every new block after positions load.
+                <br />Check back after the next refresh.
+              </div>
             </div>
           </div>
-        </div>
-      ) : isEmpty ? (
-        <div className="flex flex-col items-center justify-center gap-2 text-center" style={{ height: CHART_HEIGHT }}>
-          <div className="text-2xl">🔍</div>
-          <div className="text-sm text-gray-500">No priced data in this time range</div>
-          <div className="text-xs text-gray-700">Try a wider range or enable more tokens in the filter.</div>
-        </div>
-      ) : (
-        <>
-          <ChartCore series={series} viewMode={viewMode} showRawAmount={showRawAmount} />
-          <Legend series={series} />
-        </>
-      )}
+        ) : isEmpty ? (
+          <div className="flex flex-col items-center justify-center gap-2 text-center" style={{ height: CHART_HEIGHT }}>
+            <div className="text-2xl">🔍</div>
+            <div className="text-sm text-gray-500">No priced data in this time range</div>
+            <div className="text-xs text-gray-700">Try a wider range or enable more tokens in the filter.</div>
+          </div>
+        ) : (
+          <>
+            <ChartCore series={series} viewMode={viewMode} showRawAmount={showRawAmount} />
+            <Legend series={series} />
+          </>
+        )}
       </div>
+
+      {/* Always-visible token filter — game-controller style */}
+      <FilterPanel
+        entries={filterEntries}
+        showDiscovered={visibility.showDiscovered}
+        onToggleToken={visibility.toggleToken}
+        onToggleDiscovered={visibility.toggleShowDiscovered}
+        onReset={visibility.reset}
+        onDeselectCard={onDeselectCard}
+      />
 
       {/* Footer stats */}
       {stats && stats.count > 0 && (

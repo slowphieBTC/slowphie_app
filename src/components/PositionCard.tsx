@@ -1,9 +1,12 @@
 import { motion } from 'framer-motion';
 import { TrendingUp, Droplets, Wheat, ExternalLink, Copy, CheckCheck, Wallet, Tractor } from 'lucide-react';
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useAppStore } from '../store';
 import { useTranslation } from 'react-i18next';
 import type { Position, FarmInfo, LPUnderlying } from '../types';
+import type { TotalsUnit } from './TokenTotalsCard';
+import { CONTRACTS } from '../api/opnet';
+import { BTC_NATIVE } from '../lib/coreTokens';
 
 const STATIC_TOKEN_ICONS: Record<string, string> = {
   PILL:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqz0f729q22dv6trrvhn9msl9enqqaazy5cjy4ej6.png',
@@ -11,6 +14,20 @@ const STATIC_TOKEN_ICONS: Record<string, string> = {
   BTC:   'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
   BLUE:  '/tokens/BLUE.jpg',
   MCHAD: '/tokens/MCHAD.jpg',
+};
+
+/** Symbol → lowercase contract address, used for price lookup in marketPrices */
+const SYMBOL_TO_CONTRACT: Record<string, string> = {
+  MOTO:  CONTRACTS.MOTO_TOKEN.toLowerCase(),
+  PILL:  CONTRACTS.PILL_TOKEN.toLowerCase(),
+  SAT:   CONTRACTS.SAT_TOKEN.toLowerCase(),
+  SWAP:  CONTRACTS.SWAP_TOKEN.toLowerCase(),
+  BLUE:  CONTRACTS.BLUE_TOKEN.toLowerCase(),
+  PEPE:  CONTRACTS.PEPE_TOKEN.toLowerCase(),
+  UNGA:  CONTRACTS.UNGA_TOKEN.toLowerCase(),
+  ICHI:  CONTRACTS.ICHI_TOKEN.toLowerCase(),
+  MCHAD: CONTRACTS.MCHAD_TOKEN.toLowerCase(),
+  BTC:   BTC_NATIVE,
 };
 
 function symbolAbbr(symbol: string): string {
@@ -75,7 +92,7 @@ function TokenAvatar({ symbol, contractAddress, size = 8 }: { symbol: string; co
 
 const STAKING_ADDRESS = '0xab99e31ebb30b8e596d5be1bd1e501ee8e7b7e5ec9dc7ee880f4937b0c929dcb';
 
-interface Props { position: Position; index?: number; }
+interface Props { position: Position; index?: number; unit?: TotalsUnit; }
 
 function truncate(addr: string) {
   if (addr.startsWith('0x')) return addr.slice(0, 8) + '...' + addr.slice(-6);
@@ -99,6 +116,46 @@ function fmtLp(n: number): string {
   if (n >= 1_000_000)        return (n / 1_000_000).toFixed(4) + 'M';
   if (n >= 1_000)            return (n / 1_000).toFixed(6) + 'K';
   return n.toFixed(6);
+}
+
+/** Formatter signature used by all sub-cards */
+type CardFmt = (n: number, symbol: string, contractAddr?: string) => string;
+
+/**
+ * Hook that returns unit-aware formatters for position card values.
+ * fmtV  – for regular token amounts
+ * fmtLpV – same but falls back to fmtLp (more decimals) in 'amount' mode
+ */
+function useCardFmt(unit: TotalsUnit = 'amount'): { fmtV: CardFmt; fmtLpV: CardFmt } {
+  const marketPrices = useAppStore((s) => s.marketPrices);
+  const btcPrice     = useAppStore((s) => s.btcPrice);
+
+  function fmtV(n: number, symbol: string, contractAddr?: string): string {
+    if (n === 0) return '\u2014';
+    if (unit === 'amount') return fmt(n);
+    const key = symbol === 'BTC'
+      ? BTC_NATIVE
+      : (contractAddr?.toLowerCase() ?? SYMBOL_TO_CONTRACT[symbol.toUpperCase()] ?? '');
+    const priceBtc = marketPrices[key] ?? 0;
+    if (priceBtc === 0) return fmt(n); // no price → fall back to token amount
+    if (unit === 'btc') return (n * priceBtc).toFixed(8) + ' \u20bf';
+    // usd
+    const usdPerBtc = btcPrice ?? 0;
+    if (usdPerBtc === 0) return fmt(n);
+    const usd = n * priceBtc * usdPerBtc;
+    if (usd >= 1_000_000_000) return '$' + (usd / 1_000_000_000).toFixed(2) + 'B';
+    if (usd >= 1_000_000)     return '$' + (usd / 1_000_000).toFixed(2) + 'M';
+    if (usd >= 1_000)         return '$' + (usd / 1_000).toFixed(2) + 'K';
+    return '$' + usd.toFixed(2);
+  }
+
+  function fmtLpV(n: number, symbol: string, contractAddr?: string): string {
+    if (n === 0) return '\u2014';
+    if (unit === 'amount') return fmtLp(n);
+    return fmtV(n, symbol, contractAddr);
+  }
+
+  return { fmtV, fmtLpV };
 }
 
 function SplitTokenIcon({ leftUrl, leftAlt, rightUrl, rightAlt, size = 36, onLeftError, onRightError }: {
@@ -160,11 +217,33 @@ function ViewTabs({ active, farms, onChange }: { active: ViewId; farms: FarmInfo
   );
 }
 
-function StakeCard({ pos }: { pos: Position }) {
+function StakeCard({ pos, fmtV, unit = 'amount' }: { pos: Position; fmtV: CardFmt; unit?: TotalsUnit }) {
   const { t } = useTranslation();
+  const marketPrices = useAppStore((s) => s.marketPrices);
+  const btcPrice     = useAppStore((s) => s.btcPrice);
   const rewards = pos.stakingRewards ?? [];
   const hasRewards = rewards.some(r => r.pending > 0);
   const rewardColor: Record<string, string> = { MOTO: 'text-orange-400', PILL: 'text-purple-400', SAT: 'text-yellow-400', SWAP: 'text-cyan-400' };
+
+  // Aggregate BTC value of all pending rewards (always shown in BTC regardless of unit)
+  const totalRewardsBtc = rewards.reduce((sum, r) => {
+    if (r.pending <= 0) return sum;
+    const price = marketPrices[r.tokenAddress.toLowerCase()] ?? 0;
+    return sum + r.pending * price;
+  }, 0);
+
+  function fmtRewardsTotal(btcVal: number): string {
+    if (btcVal <= 0) return '';
+    if (unit === 'usd') {
+      const usd = btcVal * (btcPrice ?? 0);
+      if (usd <= 0) return '\u2248\u00a0' + btcVal.toFixed(8) + '\u00a0\u20bf';
+      if (usd >= 1_000_000) return '\u2248\u00a0$' + (usd / 1_000_000).toFixed(2) + 'M';
+      if (usd >= 1_000)     return '\u2248\u00a0$' + (usd / 1_000).toFixed(2) + 'K';
+      return '\u2248\u00a0$' + usd.toFixed(2);
+    }
+    return '\u2248\u00a0' + btcVal.toFixed(8) + '\u00a0\u20bf';
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2">
@@ -177,17 +256,24 @@ function StakeCard({ pos }: { pos: Position }) {
       </div>
       <div className="bg-dark-700/50 rounded-xl p-3">
         <div className="text-xs text-gray-500">{t('positions.staked')}</div>
-        <div className="mt-1 text-white font-semibold text-lg">{fmt(pos.amount)}</div>
+        <div className="mt-1 text-white font-semibold text-lg">{fmtV(pos.amount, 'MOTO', CONTRACTS.MOTO_TOKEN)}</div>
         <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
       </div>
       {rewards.length > 0 && (
         <div>
-          <div className="text-xs text-gray-500 mb-2">{t('positions.pendingRewards')}</div>
+          <div className="flex items-center justify-between mb-2">
+            <div className="text-xs text-gray-500">{t('positions.pendingRewards')}</div>
+            {totalRewardsBtc > 0 && (
+              <div className="text-xs font-semibold text-yellow-400 font-mono">{fmtRewardsTotal(totalRewardsBtc)}</div>
+            )}
+          </div>
           <div className="grid grid-cols-2 gap-2">
             {rewards.map((r) => (
               <div key={r.tokenAddress} className="bg-dark-700/50 rounded-xl p-3">
                 <div className="flex items-center gap-1.5"><TokenAvatar symbol={r.symbol} contractAddress={r.tokenAddress} size={4} /><span className="text-xs text-gray-400">{r.symbol}</span></div>
-                <div className={`mt-1 font-semibold ${r.pending > 0 ? (rewardColor[r.symbol] ?? 'text-green-400') : 'text-gray-600'}`}>{r.pending > 0 ? fmt(r.pending) : '\u2014'}</div>
+                <div className={`mt-1 font-semibold ${r.pending > 0 ? (rewardColor[r.symbol] ?? 'text-green-400') : 'text-gray-600'}`}>
+                  {r.pending > 0 ? fmtV(r.pending, r.symbol, r.tokenAddress) : '\u2014'}
+                </div>
               </div>
             ))}
           </div>
@@ -201,7 +287,7 @@ function StakeCard({ pos }: { pos: Position }) {
   );
 }
 
-function MultiViewCard({ pos }: { pos: Position }) {
+function MultiViewCard({ pos, fmtV, fmtLpV }: { pos: Position; fmtV: CardFmt; fmtLpV: CardFmt }) {
   const { t } = useTranslation();
   const farms = pos.farms ?? [];
   const defaultView: ViewId = farms.findIndex(f => f.staked > 0) >= 0 ? farms.findIndex(f => f.staked > 0) : 'wallet';
@@ -225,10 +311,10 @@ function MultiViewCard({ pos }: { pos: Position }) {
         <motion.div key="wallet" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
           <div className="bg-dark-700/50 rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-1">{t('positions.walletBalance')}</div>
-            <div className="text-2xl font-bold text-white">{fmt(walletBal)}</div>
+            <div className="text-2xl font-bold text-white">{fmtV(walletBal, token, pos.contractAddress)}</div>
             <div className="text-xs text-gray-600 mt-0.5">{token}</div>
           </div>
-          {pos.lpUnderlying && (pos.lpUnderlying.token0Amount > 0 || pos.lpUnderlying.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlying} />}
+          {pos.lpUnderlying && (pos.lpUnderlying.token0Amount > 0 || pos.lpUnderlying.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlying} fmtV={fmtV} />}
           {farms.length === 0 && <div className="text-xs text-gray-600 italic text-center">{t('positions.noFarmPositions')}</div>}
           {farms.length > 0 && farms.every(f => f.staked === 0) && <div className="text-xs text-gray-600 italic text-center">{t('positions.notStakedAnyFarm')}</div>}
         </motion.div>
@@ -239,12 +325,12 @@ function MultiViewCard({ pos }: { pos: Position }) {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-dark-700/50 rounded-xl p-3">
                 <div className="text-xs text-gray-500">{t('positions.alreadyStaked')}</div>
-                <div className="text-white font-semibold mt-1">{fmt(activeFarm.staked)}</div>
+                <div className="text-white font-semibold mt-1">{fmtV(activeFarm.staked, token, pos.contractAddress)}</div>
                 <div className="text-xs text-gray-600 mt-0.5">{token}</div>
               </div>
               <div className="bg-dark-700/50 rounded-xl p-3">
                 <div className="text-xs text-gray-500">{t('positions.pendingHarvest')}</div>
-                <div className="text-green-400 font-semibold mt-1">{fmt(activeFarm.pending)}</div>
+                <div className="text-green-400 font-semibold mt-1">{fmtV(activeFarm.pending, activeFarm.rewardToken, SYMBOL_TO_CONTRACT[activeFarm.rewardToken.toUpperCase()])}</div>
                 <div className="text-xs text-gray-600 mt-0.5">{activeFarm.rewardToken}</div>
               </div>
             </div>
@@ -255,7 +341,7 @@ function MultiViewCard({ pos }: { pos: Position }) {
               <div className="text-xs text-gray-600 mt-1">{t('positions.depositToEarn', { token, rewardToken: activeFarm.rewardToken })}</div>
             </div>
           )}
-          {pos.lpUnderlyingStaked && (pos.lpUnderlyingStaked.token0Amount > 0 || pos.lpUnderlyingStaked.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlyingStaked} />}
+          {pos.lpUnderlyingStaked && (pos.lpUnderlyingStaked.token0Amount > 0 || pos.lpUnderlyingStaked.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlyingStaked} fmtV={fmtV} />}
           <div className="text-xs text-gray-600 text-center">{t('positions.farmPoolInfo', { farmName: activeFarm.farmName, poolId: activeFarm.poolId })}</div>
         </motion.div>
       )}
@@ -269,7 +355,7 @@ function MultiViewCard({ pos }: { pos: Position }) {
   );
 }
 
-function FarmCard({ pos }: { pos: Position }) {
+function FarmCard({ pos, fmtV }: { pos: Position; fmtV: CardFmt }) {
   const { t } = useTranslation();
   const isWalletOnly = pos.poolId === undefined;
   return (
@@ -287,19 +373,19 @@ function FarmCard({ pos }: { pos: Position }) {
       {isWalletOnly ? (
         <div className="bg-dark-700/50 rounded-xl p-3">
           <div className="text-xs text-gray-500">{t('positions.walletBalance')}</div>
-          <div className="mt-1 text-white font-semibold text-lg">{fmt(pos.amount)}</div>
+          <div className="mt-1 text-white font-semibold text-lg">{fmtV(pos.amount, pos.token, pos.contractAddress)}</div>
           <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-dark-700/50 rounded-xl p-3">
             <div className="text-xs text-gray-500">{t('positions.alreadyStaked')}</div>
-            <div className="mt-1 text-white font-semibold">{fmt(pos.amount)}</div>
+            <div className="mt-1 text-white font-semibold">{fmtV(pos.amount, pos.token, pos.contractAddress)}</div>
             <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
           </div>
           <div className="bg-dark-700/50 rounded-xl p-3">
             <div className="text-xs text-gray-500">{t('positions.pendingHarvest')}</div>
-            <div className="mt-1 text-green-400 font-semibold">{fmt(pos.rewards)}</div>
+            <div className="mt-1 text-green-400 font-semibold">{fmtV(pos.rewards, pos.rewardToken ?? '', SYMBOL_TO_CONTRACT[(pos.rewardToken ?? '').toUpperCase()])}</div>
             <div className="text-xs text-gray-600 mt-0.5">{pos.rewardToken ?? '\u2014'}</div>
           </div>
         </div>
@@ -309,7 +395,7 @@ function FarmCard({ pos }: { pos: Position }) {
   );
 }
 
-function LPUnderlyingGrid({ und }: { und: LPUnderlying }) {
+function LPUnderlyingGrid({ und, fmtV }: { und: LPUnderlying; fmtV: CardFmt }) {
   const { t } = useTranslation();
   const ICONS: Record<string, string> = {
     MOTO: 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
@@ -317,18 +403,23 @@ function LPUnderlyingGrid({ und }: { und: LPUnderlying }) {
     BTC:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
   };
   const COLORS: Record<string, string> = { SWAP: 'text-cyan-300', MOTO: 'text-orange-400', PILL: 'text-purple-400', BTC: 'text-orange-400' };
-  const tokens = [{ symbol: und.token0Symbol, amount: und.token0Amount }, { symbol: und.token1Symbol, amount: und.token1Amount }];
+  const tokens = [
+    { symbol: und.token0Symbol, amount: und.token0Amount, address: und.token0Address },
+    { symbol: und.token1Symbol, amount: und.token1Amount, address: und.token1Address },
+  ];
   return (
     <div>
       <div className="text-xs text-gray-500 mb-2">{t('positions.poolComposition')}</div>
       <div className="grid grid-cols-2 gap-2">
         {tokens.map((tk) => (
-          <div key={(tk as any).address || tk.symbol} className="bg-dark-700/50 rounded-xl p-3">
+          <div key={tk.address || tk.symbol} className="bg-dark-700/50 rounded-xl p-3">
             <div className="flex items-center gap-1.5 mb-1">
               {ICONS[tk.symbol] ? <img src={ICONS[tk.symbol]} alt={tk.symbol} className="w-4 h-4 rounded" /> : null}
               <span className="text-xs text-gray-400">{tk.symbol}</span>
             </div>
-            <div className={`font-semibold text-sm ${tk.amount > 0 ? (COLORS[tk.symbol] ?? 'text-blue-400') : 'text-gray-600'}`}>{tk.amount > 0 ? fmt(tk.amount) : '\u2014'}</div>
+            <div className={`font-semibold text-sm ${tk.amount > 0 ? (COLORS[tk.symbol] ?? 'text-blue-400') : 'text-gray-600'}`}>
+              {tk.amount > 0 ? fmtV(tk.amount, tk.symbol, tk.address) : '\u2014'}
+            </div>
           </div>
         ))}
       </div>
@@ -336,7 +427,7 @@ function LPUnderlyingGrid({ und }: { und: LPUnderlying }) {
   );
 }
 
-function MchadCard({ pos }: { pos: Position }) {
+function MchadCard({ pos, fmtV }: { pos: Position; fmtV: CardFmt }) {
   const { t } = useTranslation();
   const p = pos.mchadStaking!.positions[0]!;
   const lockDays = Math.round(p.lockDuration / 86400);
@@ -359,12 +450,12 @@ function MchadCard({ pos }: { pos: Position }) {
             <span className="text-xs text-gray-600">{t('positions.lockDays', { days: lockDays })}</span>
           </div>
         </div>
-        <div className="text-white font-semibold text-lg">{fmt(parseFloat(p.stakedFormatted))}</div>
-        <div className="text-xs text-gray-500 mt-0.5">{t('positions.weighted', { amount: fmt(parseFloat(p.stakedWeightedFormatted)) })}</div>
+        <div className="text-white font-semibold text-lg">{fmtV(parseFloat(p.stakedFormatted), 'MCHAD', CONTRACTS.MCHAD_TOKEN)}</div>
+        <div className="text-xs text-gray-500 mt-0.5">{t('positions.weighted', { amount: fmtV(parseFloat(p.stakedWeightedFormatted), 'MCHAD', CONTRACTS.MCHAD_TOKEN) })}</div>
       </div>
       <div className="bg-dark-700/50 rounded-xl p-3">
         <div className="text-xs text-gray-500 mb-1">{t('positions.pendingHarvest')}</div>
-        <div className="text-[#75bbdf] font-semibold text-lg">{fmt(parseFloat(p.unclaimedRewardsFormatted))}</div>
+        <div className="text-[#75bbdf] font-semibold text-lg">{fmtV(parseFloat(p.unclaimedRewardsFormatted), p.rewardSymbol, SYMBOL_TO_CONTRACT[p.rewardSymbol.toUpperCase()])}</div>
         <div className="text-xs text-gray-600 mt-0.5">{p.rewardSymbol}</div>
       </div>
       <div className="text-xs text-gray-600 text-center">{t('positions.unlocks', { date: unlockDate })}</div>
@@ -373,7 +464,7 @@ function MchadCard({ pos }: { pos: Position }) {
   );
 }
 
-function LPCard({ pos }: { pos: Position }) {
+function LPCard({ pos, fmtV, fmtLpV }: { pos: Position; fmtV: CardFmt; fmtLpV: CardFmt }) {
   const { t } = useTranslation();
   const hasMchadTab = !!pos.mchadLpStaking;
   const [view, setView] = useState<'wallet' | 'mchad'>('wallet');
@@ -405,17 +496,17 @@ function LPCard({ pos }: { pos: Position }) {
         <motion.div key="wallet" initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} className="space-y-3">
           <div className="bg-dark-700/50 rounded-xl p-4">
             <div className="text-xs text-gray-500 mb-1">{t('positions.lpTokens')}</div>
-            <div className="text-2xl font-bold text-white">{fmtLp(pos.walletBalance ?? pos.amount)}</div>
+            <div className="text-2xl font-bold text-white">{fmtLpV(pos.walletBalance ?? pos.amount, pos.token, pos.contractAddress)}</div>
             <div className="text-xs text-gray-600 mt-0.5">{pos.token}</div>
           </div>
           {pos.rewards > 0 && (
             <div className="bg-dark-700/50 rounded-xl p-3">
               <div className="text-xs text-gray-500">{t('positions.pendingHarvest')}</div>
-              <div className="mt-1 text-blue-400 font-semibold">{fmt(pos.rewards)}</div>
+              <div className="mt-1 text-blue-400 font-semibold">{fmtV(pos.rewards, pos.rewardToken ?? '', SYMBOL_TO_CONTRACT[(pos.rewardToken ?? '').toUpperCase()])}</div>
               <div className="text-xs text-gray-600 mt-0.5">{pos.rewardToken ?? '\u2014'}</div>
             </div>
           )}
-          {pos.lpUnderlying && (pos.lpUnderlying.token0Amount > 0 || pos.lpUnderlying.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlying} />}
+          {pos.lpUnderlying && (pos.lpUnderlying.token0Amount > 0 || pos.lpUnderlying.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlying} fmtV={fmtV} />}
         </motion.div>
       )}
       {view === 'mchad' && mchad && (
@@ -426,16 +517,16 @@ function LPCard({ pos }: { pos: Position }) {
                 <div className="text-xs text-gray-500">{t('positions.alreadyStaked')}</div>
                 <span className="text-xs text-purple-400 font-medium">{mchad.multiplierFormatted}</span>
               </div>
-              <div className="text-white font-semibold">{fmtLp(parseFloat(mchad.stakedFormatted))}</div>
+              <div className="text-white font-semibold">{fmtLpV(parseFloat(mchad.stakedFormatted), pos.token, pos.contractAddress)}</div>
               <div className="text-xs text-gray-600 mt-0.5">{t('positions.lockDays', { days: lockDays })}</div>
             </div>
             <div className="bg-dark-700/50 rounded-xl p-3">
               <div className="text-xs text-gray-500 mb-1">{t('positions.pendingHarvest')}</div>
-              <div className="text-[#75bbdf] font-semibold">{fmt(parseFloat(mchad.unclaimedRewardsFormatted))}</div>
+              <div className="text-[#75bbdf] font-semibold">{fmtV(parseFloat(mchad.unclaimedRewardsFormatted), mchad.rewardSymbol, SYMBOL_TO_CONTRACT[mchad.rewardSymbol.toUpperCase()])}</div>
               <div className="text-xs text-gray-600 mt-0.5">{mchad.rewardSymbol}</div>
             </div>
           </div>
-          {pos.lpUnderlyingStaked && (pos.lpUnderlyingStaked.token0Amount > 0 || pos.lpUnderlyingStaked.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlyingStaked} />}
+          {pos.lpUnderlyingStaked && (pos.lpUnderlyingStaked.token0Amount > 0 || pos.lpUnderlyingStaked.token1Amount > 0) && <LPUnderlyingGrid und={pos.lpUnderlyingStaked} fmtV={fmtV} />}
           {unlockDate && <div className="text-xs text-gray-600 text-center">{t('positions.unlocks', { date: unlockDate })}</div>}
         </motion.div>
       )}
@@ -449,8 +540,9 @@ function LPCard({ pos }: { pos: Position }) {
   );
 }
 
-export function PositionCard({ position, index = 0 }: Props) {
+export function PositionCard({ position, index = 0, unit = 'amount' }: Props) {
   const { t } = useTranslation();
+  const { fmtV, fmtLpV } = useCardFmt(unit);
   const isMulti  = position.hasFarmView === true;
   const isMchad  = !!position.mchadStaking;
   const isStake  = position.type === 'stake' && !isMchad;
@@ -476,11 +568,11 @@ export function PositionCard({ position, index = 0 }: Props) {
   return (
     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.08 }}
       className={`glass rounded-2xl p-5 bg-gradient-to-br ${borderClass} border transition-all duration-300 hover:-translate-y-0.5`}>
-      {isMchad   ? <MchadCard     pos={position} /> :
-       isMulti   ? <MultiViewCard pos={position} /> :
-       isStake   ? <StakeCard     pos={position} /> :
-       isLP      ? <LPCard        pos={position} /> :
-                   <FarmCard      pos={position} />}
+      {isMchad   ? <MchadCard     pos={position} fmtV={fmtV} /> :
+       isMulti   ? <MultiViewCard pos={position} fmtV={fmtV} fmtLpV={fmtLpV} /> :
+       isStake   ? <StakeCard     pos={position} fmtV={fmtV} unit={unit} /> :
+       isLP      ? <LPCard        pos={position} fmtV={fmtV} fmtLpV={fmtLpV} /> :
+                   <FarmCard      pos={position} fmtV={fmtV} />}
       {!isMulti && !isLP && (
         <div className="mt-3 pt-3 border-t border-dark-600/50">
           <a href={simpleLink} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-xs text-gray-600 hover:text-brand-400 transition-colors">

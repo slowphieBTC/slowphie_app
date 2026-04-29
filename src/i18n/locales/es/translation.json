@@ -340,7 +340,7 @@
     "lockDays": "Bloqueo {{days}}d"
   },
   "totals": {
-    "aggregateHoldings": "Tenencias totales de tokens",
+    "aggregateHoldings": "Tenencia de Tokens",
     "summary": "Resumen",
     "detail": "Detalle",
     "switchToSummary": "Cambiar a vista de resumen",

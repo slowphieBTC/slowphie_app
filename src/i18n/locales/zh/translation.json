@@ -340,7 +340,7 @@
     "lockDays": "锁定 {{days}} 天"
   },
   "totals": {
-    "aggregateHoldings": "代币总持有量",
+    "aggregateHoldings": "代币持仓",
     "summary": "摘要",
     "detail": "详情",
     "switchToSummary": "切换到摘要视图",

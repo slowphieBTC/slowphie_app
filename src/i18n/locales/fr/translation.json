@@ -340,7 +340,7 @@
     "lockDays": "Verrou {{days}}j"
   },
   "totals": {
-    "aggregateHoldings": "Avoirs totaux en tokens",
+    "aggregateHoldings": "Total des Tokens",
     "summary": "Résumé",
     "detail": "Détail",
     "switchToSummary": "Passer à la vue résumée",

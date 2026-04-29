@@ -134,7 +134,7 @@ export async function buildAndSaveSnapshot(
   // BTC native: price = 1 BTC, confidence = 1 (direct, no route needed)
   marketPriceMap.set(BTC_NATIVE, { priceBtc: 1.0, confidence: 1 });
   for (const m of marketsData.markets) {
-    const p = parseFloat(m.price);
+    const p = parseFloat(m.rawPriceBtc || m.price);
     if (p > 0 && m.routes.length > 0) {
       marketPriceMap.set(m.id.toLowerCase(), {
         priceBtc:   p,
