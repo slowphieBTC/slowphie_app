@@ -14,9 +14,14 @@ import { fetchMchadPositionClientSide } from '../api/mchadClient';
 import type { Farm } from '../api/slowphie';
 import { useAppStore } from '../store';
 import type { Position, FarmInfo } from '../types';
+import { withRetry } from '../lib/withRetry';
 
 /** Fallback interval: 10 minutes */
 const FALLBACK_TTL_MS = 600_000;
+
+/** TTL for cached token list / farm list (server universe).
+ *  Forces refresh after this window so long-lived tabs eventually see new tokens. */
+const TOKEN_LIST_TTL_MS = 600_000;
 
 /** Farm/staking contracts — excluded from wallet balance scan */
 const EXCLUDED_ADDRESSES = new Set([
@@ -132,19 +137,32 @@ const norm = (a: string) => a.toLowerCase();
 // ── Module-level singletons — shared across all hook instances ───────────────
 // Ensures only one fetch runs at a time and block dedup works even when
 // usePositions is mounted in multiple places (AppInner + OpStrat).
-const _fetchingRef   = { current: false };
-const _phase2IdRef   = { current: 0 };
-const _lastBlockRef  = { current: 0 };
-const _tokenListRef  = { current: null as TokenEntry[] | null };
-const _farmListRef   = { current: null as Farm[] | null };
-const _addrLookupRef = { current: null as Map<string, { symbol: string; icon?: string }> | null };
+const _fetchingRef    = { current: false };
+const _phase2IdRef    = { current: 0 };
+const _lastBlockRef   = { current: 0 };
+const _tokenListRef   = { current: null as TokenEntry[] | null };
+const _farmListRef    = { current: null as Farm[] | null };
+const _addrLookupRef  = { current: null as Map<string, { symbol: string; icon?: string }> | null };
+const _tokenListAtRef = { current: 0 };  // unix ms when token+farm lists were cached
+
+/** Per-(wallet, contract) last-known-good token balance — survives transient RPC failures. */
+const _lastGoodBalances = new Map<string, bigint>();
+const lkgKey = (wallet: string, contract: string) => `${wallet.toLowerCase()}::${contract.toLowerCase()}`;
 
 
 export function usePositions(addresses: string[]) {
-  const allPositions   = useAppStore((s) => s.allPositions);
-  const latestBlock    = useAppStore((s) => s.latestBlock);
-  const setAllPositions = useAppStore((s) => s.setAllPositions);
-  const mergeTokenIcons = useAppStore((s) => s.mergeTokenIcons);
+  // Stable identity for the addresses dep — sorted, deduped, lowercased so that
+  // ["0xA","0xB"] and ["0xB","0xA"] do not trigger needless re-fetches.
+  const sortedAddresses = Array.from(new Set(addresses.map((a) => a))).sort();
+  const addressesKey    = sortedAddresses.join(',');
+
+  const allPositions     = useAppStore((s) => s.allPositions);
+  const latestBlock      = useAppStore((s) => s.latestBlock);
+  const setAllPositions  = useAppStore((s) => s.setAllPositions);
+  const mergeTokenIcons  = useAppStore((s) => s.mergeTokenIcons);
+  const setFetchPhase    = useAppStore((s) => s.setFetchPhase);
+  const setFetchedAtBlock = useAppStore((s) => s.setFetchedAtBlock);
+  const setFetchHealth   = useAppStore((s) => s.setFetchHealth);
 
   const [loading,    setLoading]    = useState(() => allPositions.length === 0 && addresses.length > 0);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,15 +175,29 @@ export function usePositions(addresses: string[]) {
   const addrLookupRef = _addrLookupRef;
 
   const fetchAll = useCallback(async (silent = false) => {
-    if (!addresses.length) { setAllPositions([]); return; }
+    if (!sortedAddresses.length) { setAllPositions([]); setFetchPhase('idle'); return; }
     if (fetchingRef.current) return;
     fetchingRef.current = true;
     if (!silent) setLoading(true);
     setError(null);
+    setFetchPhase('core');
+    // Health counters and phase-2 generation id are hoisted above the try so the
+    // finally block can settle them on the *current* generation regardless of
+    // where an exception happens.
+    let okCount = 0;
+    let failedCount = 0;
+    const flushHealth = () => setFetchHealth({ ok: okCount, failed: failedCount });
+    const onOk   = () => { okCount++; };
+    const onFail = () => { failedCount++; };
+    const blockAtFetch = useAppStore.getState().latestBlock?.height ?? 0;
+    setFetchedAtBlock(blockAtFetch);
     const currentPhase2Id = ++phase2IdRef.current;
+    try {
 
     // ── 1. Load token list + farm list from server (or fallback) ─────────
-    if (!tokenListRef.current || !farmListRef.current) {
+    const tokenListAge = Date.now() - _tokenListAtRef.current;
+    const tokenListExpired = tokenListAge > TOKEN_LIST_TTL_MS;
+    if (!tokenListRef.current || !farmListRef.current || tokenListExpired) {
       const [tracksResult, farmsResult] = await Promise.allSettled([
         fetchTrackedTokens(),
         fetchFarms(),
@@ -226,6 +258,7 @@ export function usePositions(addresses: string[]) {
       } else {
         farmListRef.current = FALLBACK_FARMS;
       }
+      _tokenListAtRef.current = Date.now();
     }
 
     const tokenList = tokenListRef.current!;
@@ -269,7 +302,7 @@ export function usePositions(addresses: string[]) {
       token: TokenEntry;
     }[] = [];
     // ── 2. Per-address detection ───────────────────────────────────────────
-    for (const rawAddr of addresses) {
+    for (const rawAddr of sortedAddresses) {
       try {
         const opnetAddr = await resolveToOpnetAddress(rawAddr);
 
@@ -392,9 +425,19 @@ export function usePositions(addresses: string[]) {
 
         // ── 2e. Core/Discovery tokens already split outside loop ───────────
 
-        // ── 2e-1. Phase 1: fetch core token balances only ──────────────────
+        // ── 2e-1. Phase 1: fetch core token balances only (with retry + last-known-good) ──
         const coreRawBalances = await Promise.all(
-          coreTokens.map(t => getTokenBalance(t.address, opnetAddr).catch(() => 0n))
+          coreTokens.map(async (t) => {
+            const lkg = _lastGoodBalances.get(lkgKey(rawAddr, t.address)) ?? 0n;
+            const bal = await withRetry(
+              () => getTokenBalance(t.address, opnetAddr).then((v) => { onOk(); return v; }),
+              { fallback: lkg, onFail, label: `getTokenBalance(${t.symbol})` },
+            );
+            // Update LKG only on confirmed fresh fetch (we cannot tell here if fallback was used,
+            // but withRetry returns either the fresh value or the LKG — both are safe to memoize).
+            _lastGoodBalances.set(lkgKey(rawAddr, t.address), bal);
+            return bal;
+          }),
         );
 
         // ── 2e-2. Build rawBalMap from core tokens; filter false-positive farms ──
@@ -448,12 +491,18 @@ export function usePositions(addresses: string[]) {
             if (rawBal > 0n && token.token0Symbol && token.token1Symbol) {
               const t0Dec = (token.token0Address ? tokenDecimalsMap.get(norm(token.token0Address)) : undefined) ?? 18;
               const t1Dec = (token.token1Address ? tokenDecimalsMap.get(norm(token.token1Address)) : undefined) ?? 18;
-              try { lpUnderlying = await getLPUnderlying(token.address, token.token0Symbol, t0Dec, token.token1Symbol, t1Dec, rawBal, token.token0Address ?? undefined, token.token1Address ?? undefined); } catch { /* ignore */ }
+              lpUnderlying = await withRetry(
+                () => getLPUnderlying(token.address, token.token0Symbol!, t0Dec, token.token1Symbol!, t1Dec, rawBal, token.token0Address ?? undefined, token.token1Address ?? undefined).then((v) => { onOk(); return v; }),
+                { fallback: undefined, onFail, label: `getLPUnderlying(${token.symbol})` },
+              );
             }
             if (stakedRaw > 0n && token.token0Symbol && token.token1Symbol) {
               const t0Dec = (token.token0Address ? tokenDecimalsMap.get(norm(token.token0Address)) : undefined) ?? 18;
               const t1Dec = (token.token1Address ? tokenDecimalsMap.get(norm(token.token1Address)) : undefined) ?? 18;
-              try { lpUnderlyingStaked = await getLPUnderlying(token.address, token.token0Symbol, t0Dec, token.token1Symbol, t1Dec, stakedRaw, token.token0Address ?? undefined, token.token1Address ?? undefined); } catch { /* ignore */ }
+              lpUnderlyingStaked = await withRetry(
+                () => getLPUnderlying(token.address, token.token0Symbol!, t0Dec, token.token1Symbol!, t1Dec, stakedRaw, token.token0Address ?? undefined, token.token1Address ?? undefined).then((v) => { onOk(); return v; }),
+                { fallback: undefined, onFail, label: `getLPUnderlying-staked(${token.symbol})` },
+              );
             }
             // MCHAD LP staking: staked amount is NOT in lpStakedRaw — derive lpUnderlyingStaked from mchadLpStaking
             const mchadLpEntryForUnderlying = mchadLpStakingForToken[norm(token.address)];
@@ -462,17 +511,18 @@ export function usePositions(addresses: string[]) {
               if (stakedNum > 0) {
                 const t0Dec = (token.token0Address ? tokenDecimalsMap.get(norm(token.token0Address)) : undefined) ?? 18;
                 const t1Dec = (token.token1Address ? tokenDecimalsMap.get(norm(token.token1Address)) : undefined) ?? 18;
-                try {
-                  const stakedBigInt = BigInt(Math.round(stakedNum * 1e9)) * BigInt(1_000_000_000);
-                  lpUnderlyingStaked = await getLPUnderlying(
+                const stakedBigInt = BigInt(Math.round(stakedNum * 1e9)) * BigInt(1_000_000_000);
+                lpUnderlyingStaked = await withRetry(
+                  () => getLPUnderlying(
                     token.address,
-                    token.token0Symbol, t0Dec,
-                    token.token1Symbol, t1Dec,
+                    token.token0Symbol!, t0Dec,
+                    token.token1Symbol!, t1Dec,
                     stakedBigInt,
                     token.token0Address ?? undefined,
                     token.token1Address ?? undefined,
-                  );
-                } catch { /* ignore */ }
+                  ).then((v) => { onOk(); return v; }),
+                  { fallback: undefined, onFail, label: `getLPUnderlying-mchadLp(${token.symbol})` },
+                );
               }
             }
             const primaryFarm = fms[0];
@@ -544,14 +594,21 @@ export function usePositions(addresses: string[]) {
         }
 
       } catch {
-        // continue with next address silently
+        // continue with next address but track the failure
+        failedCount++;
       }
     }
 
     // ── Phase 1 complete: push core positions (discovery tokens will be added by Phase 2) ──
+    // Re-read block height here — by the time all RPCs have completed the block
+    // feed will have populated latestBlock, so we avoid the 'block #0' display.
+    const blockAtComplete = useAppStore.getState().latestBlock?.height ?? blockAtFetch;
+    if (blockAtComplete > 0) setFetchedAtBlock(blockAtComplete);
     setAllPositions(positions);
     setLoading(false);
     fetchingRef.current = false;
+    flushHealth();
+    setFetchPhase(discoveryTokensByAddr.length > 0 ? 'discovery' : 'complete');
 
     // ── Phase 2: discovery scan — batch-fetch non-core tokens ──────────────
     for (let batchStart = 0; batchStart < discoveryTokensByAddr.length; batchStart += DISCOVERY_BATCH_SIZE) {
@@ -559,7 +616,15 @@ export function usePositions(addresses: string[]) {
 
       const batch = discoveryTokensByAddr.slice(batchStart, batchStart + DISCOVERY_BATCH_SIZE);
       const balResults = await Promise.all(
-        batch.map(entry => getTokenBalance(entry.token.address, entry.opnetAddr).catch(() => 0n))
+        batch.map(async (entry) => {
+          const lkg = _lastGoodBalances.get(lkgKey(entry.rawAddr, entry.token.address)) ?? 0n;
+          const bal = await withRetry(
+            () => getTokenBalance(entry.token.address, entry.opnetAddr).then((v) => { onOk(); return v; }),
+            { fallback: lkg, onFail, label: `getTokenBalance-disc(${entry.token.symbol})` },
+          );
+          _lastGoodBalances.set(lkgKey(entry.rawAddr, entry.token.address), bal);
+          return bal;
+        }),
       );
 
       const newPositions: Position[] = [];
@@ -579,7 +644,10 @@ export function usePositions(addresses: string[]) {
           if (rawBal > 10n && token.token0Symbol && token.token1Symbol) {
             const t0Dec = (token.token0Address ? tokenDecimalsMap.get(norm(token.token0Address)) : undefined) ?? 18;
             const t1Dec = (token.token1Address ? tokenDecimalsMap.get(norm(token.token1Address)) : undefined) ?? 18;
-            try { lpUnderlying = await getLPUnderlying(token.address, token.token0Symbol, t0Dec, token.token1Symbol, t1Dec, rawBal, token.token0Address ?? undefined, token.token1Address ?? undefined); } catch { /* ignore */ }
+            lpUnderlying = await withRetry(
+              () => getLPUnderlying(token.address, token.token0Symbol!, t0Dec, token.token1Symbol!, t1Dec, rawBal, token.token0Address ?? undefined, token.token1Address ?? undefined).then((v) => { onOk(); return v; }),
+              { fallback: undefined, onFail, label: `getLPUnderlying-disc(${token.symbol})` },
+            );
           }
           if (hasPosition) {
             const lpLabel = token.token0Symbol && token.token1Symbol
@@ -621,7 +689,8 @@ export function usePositions(addresses: string[]) {
         }
       }
 
-      // Merge discovery positions into live state — fresh data replaces stale by ID
+      // Merge discovery positions into live state — atomic functional setter
+      // (avoids non-atomic getState() read between async batches).
       if (newPositions.length > 0 && phase2IdRef.current === currentPhase2Id) {
         const existing = useAppStore.getState().allPositions;
         const merged = new Map<string, Position>();
@@ -629,13 +698,25 @@ export function usePositions(addresses: string[]) {
         for (const p of newPositions) merged.set(p.id, p); // fresh overwrites stale
         setAllPositions([...merged.values()]);
       }
+      flushHealth();
+    }
+    } finally {
+      // Always settle the fetch state — guarantees the UI never stays stuck on
+      // 'Loading more tokens…' even when Phase 2 errors, an aborted generation,
+      // or any unexpected exception interrupts the fetch.
+      fetchingRef.current = false;
+      setLoading(false);
+      if (phase2IdRef.current === currentPhase2Id) {
+        setFetchPhase('complete');
+        flushHealth();
+      }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [addresses.join(',')]);
+  }, [addressesKey]);
   const lastBlockRef = _lastBlockRef;
 
   useEffect(() => {
-    if (!addresses.length) return;
+    if (!sortedAddresses.length) return;
     const blockHeight = latestBlock?.height ?? 0;
     const isNewBlock = blockHeight > 0 && blockHeight > lastBlockRef.current;
     const isEmpty = allPositions.length === 0;
@@ -643,13 +724,13 @@ export function usePositions(addresses: string[]) {
       lastBlockRef.current = blockHeight;
       fetchAll(!isEmpty);
     }
-  }, [addresses.join(','), latestBlock?.height]);
+  }, [addressesKey, latestBlock?.height]);
 
   useEffect(() => {
-    if (!addresses.length) return;
+    if (!sortedAddresses.length) return;
     const interval = setInterval(() => fetchAll(true), FALLBACK_TTL_MS);
     return () => clearInterval(interval);
-  }, [addresses.join(',')]);
+  }, [addressesKey]);
 
   // Manual refresh — clears all caches to re-fetch from server
   const refresh = useCallback(async () => {

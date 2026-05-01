@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Wallet, BarChart2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,15 @@ import { CONTRACTS } from '../api/opnet';
 import { BTC_NATIVE } from '../lib/coreTokens';
 import { getTokenStyle, getTokenHex, getTokenTailwind } from '../lib/tokenColors';
 import { TokenMarketPopup } from './TokenMarketPopup';
+import {
+  aggregateTokenHoldings,
+  type TokenTotal     as SharedTokenTotal,
+  type TokenBreakdown as SharedTokenBreakdown,
+} from '../lib/tokenAggregation';
+
+// Re-export for backwards compatibility (TokenMarketPopup imports these from here)
+export type TokenBreakdown = SharedTokenBreakdown;
+export type TokenTotal     = SharedTokenTotal;
 const STATIC_TOKEN_ICONS: Record<string, string> = {
   BTC:   'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
   MOTO:  'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
@@ -61,96 +70,6 @@ function TokenIcon({ symbol, contractAddress, color, size = 'md' }: { symbol: st
   const imgCls = size === 'sm' ? 'w-5 h-5' : 'w-8 h-8';
   if (url && !err) return <img src={url} alt={symbol} className={`${imgCls} object-contain rounded-full`} onError={() => setErr(true)} />;
   return <span className={`text-xs font-bold ${color}`}>{abbr}</span>;
-}
-
-export interface TokenBreakdown {
-  address: string; label: string; amount: number;
-  type: 'wallet' | 'staked' | 'pending' | 'lp';
-  tokenContract?: string;
-}
-export interface TokenTotal {
-  symbol: string; tokenContract?: string; total: number; breakdown: TokenBreakdown[];
-}
-
-function aggregateTokens(positions: Position[]): TokenTotal[] {
-  const totals = new Map<string, { symbol: string; tokenContract?: string; total: number; breakdown: TokenBreakdown[] }>();
-  const add = (walletAddr: string, symbol: string, amount: number, label: string, type: TokenBreakdown['type'], tokenContract?: string) => {
-    if (!symbol || amount <= 0) return;
-    const sym = symbol.toUpperCase();
-    const mapKey = sym === 'BTC' ? BTC_NATIVE : (tokenContract ? tokenContract.toLowerCase() : sym);
-    const effectiveContract = sym === 'BTC' ? undefined : tokenContract;
-    if (!totals.has(mapKey)) totals.set(mapKey, { symbol: sym, tokenContract: effectiveContract, total: 0, breakdown: [] });
-    const entry = totals.get(mapKey)!;
-    entry.total += amount;
-    entry.breakdown.push({ address: walletAddr, label, amount, type, tokenContract: effectiveContract });
-  };
-  for (const pos of positions) {
-    const addr = pos.address;
-    const addrShort = addr.slice(0, 8) + '\u2026';
-    const cAddr = pos.contractAddress;
-    if (pos.type === 'stake') {
-      if (pos.mchadStaking) {
-        const p = pos.mchadStaking.positions[0];
-        if (p) {
-          if (parseFloat(p.stakedFormatted) > 0) add(addr, 'MCHAD', parseFloat(p.stakedFormatted), `MCHAD Staked (${addrShort})`, 'staked', CONTRACTS.MCHAD_TOKEN);
-          if (parseFloat(p.unclaimedRewardsFormatted) > 0) add(addr, p.rewardSymbol.toUpperCase(), parseFloat(p.unclaimedRewardsFormatted), `MCHAD Pending Harvest (${addrShort})`, 'pending');
-        }
-      } else {
-        if (pos.amount > 0) add(addr, pos.token, pos.amount, `Staked (${addrShort})`, 'staked', cAddr);
-        pos.stakingRewards?.forEach(r => { if (r.pending > 0) add(addr, r.symbol, r.pending, `Stake Reward (${addrShort})`, 'pending', r.tokenAddress); });
-      }
-    } else if (pos.type === 'farm') {
-      if (pos.hasFarmView) {
-        if ((pos.walletBalance ?? 0) > 0) add(addr, pos.token, pos.walletBalance ?? 0, `Wallet (${addrShort})`, 'wallet', cAddr);
-        pos.farms?.forEach(f => {
-          if (f.staked > 0)  add(addr, pos.token, f.staked, `${f.farmName} Staked`, 'staked', cAddr);
-          if (f.pending > 0) add(addr, f.rewardToken, f.pending, `${f.farmName} Harvest`, 'pending');
-        });
-      } else {
-        const hasActiveFarm = pos.farms?.some(f => f.staked > 0 || f.pending > 0) ?? false;
-        const entryType: TokenBreakdown['type'] = hasActiveFarm ? 'staked' : 'wallet';
-        if (pos.amount > 0) add(addr, pos.token, pos.amount, pos.label, entryType, cAddr);
-        if (pos.rewards > 0 && pos.rewardToken) add(addr, pos.rewardToken, pos.rewards, `${pos.label} Harvest`, 'pending');
-      }
-    } else if (pos.type === 'lp') {
-      if (pos.lpUnderlying) {
-        const { token0Symbol, token1Symbol, token0Amount, token1Amount, token0Address, token1Address } = pos.lpUnderlying;
-        if (token0Amount > 0) add(addr, token0Symbol, token0Amount, `${pos.label} Wallet LP`, 'lp', token0Address);
-        if (token1Amount > 0) add(addr, token1Symbol, token1Amount, `${pos.label} Wallet LP`, 'lp', token1Address);
-      }
-      if (pos.lpUnderlyingStaked) {
-        const { token0Symbol, token1Symbol, token0Amount, token1Amount, token0Address, token1Address } = pos.lpUnderlyingStaked;
-        if (token0Amount > 0) add(addr, token0Symbol, token0Amount, `${pos.label} Staked LP`, 'lp', token0Address);
-        if (token1Amount > 0) add(addr, token1Symbol, token1Amount, `${pos.label} Staked LP`, 'lp', token1Address);
-      }
-      pos.farms?.forEach(f => { if (f.pending > 0) add(addr, f.rewardToken, f.pending, `${f.farmName} Harvest`, 'pending'); });
-      if (!pos.hasFarmView && pos.rewards > 0 && pos.rewardToken) add(addr, pos.rewardToken, pos.rewards, `${pos.label} Harvest`, 'pending');
-      if (pos.mchadLpStaking) {
-        const lp = pos.mchadLpStaking;
-        if (parseFloat(lp.unclaimedRewardsFormatted) > 0) add(addr, lp.rewardSymbol.toUpperCase(), parseFloat(lp.unclaimedRewardsFormatted), `MCHAD LP Pending Harvest (${addrShort})`, 'pending');
-      }
-    }
-  }
-  for (const [mapKey, data] of [...totals.entries()]) {
-    if (data.tokenContract) continue;
-    const addrEntry = [...totals.values()].find(d => d.tokenContract && d.symbol === data.symbol);
-    if (addrEntry) { addrEntry.total += data.total; addrEntry.breakdown.push(...data.breakdown); totals.delete(mapKey); }
-  }
-  const result: TokenTotal[] = [];
-  for (const addrKey of TOKEN_ADDRESS_ORDER) { for (const [mapKey, data] of totals) { if (mapKey === addrKey) result.push({ symbol: data.symbol, tokenContract: data.tokenContract, total: data.total, breakdown: data.breakdown }); } }
-  // Discovered tokens: sort by custom order, then alphabetically for unknown symbols
-  const discovered = [...totals.entries()]
-    .filter(([mapKey]) => !TOKEN_ADDRESS_ORDER.includes(mapKey))
-    .sort(([_, a], [__, b]) => {
-      const ad = DISCOVERED_SYMBOL_ORDER.indexOf(a.symbol.toUpperCase());
-      const bd = DISCOVERED_SYMBOL_ORDER.indexOf(b.symbol.toUpperCase());
-      if (ad !== -1 && bd !== -1) return ad - bd;
-      if (ad !== -1) return -1;
-      if (bd !== -1) return 1;
-      return a.symbol.localeCompare(b.symbol);
-    });
-  for (const [mapKey, data] of discovered) { result.push({ symbol: data.symbol, tokenContract: data.tokenContract, total: data.total, breakdown: data.breakdown }); }
-  return result.filter(t => t.total > 0);
 }
 
 function groupByType(items: TokenBreakdown[]): { type: TokenBreakdown['type']; total: number }[] {
@@ -267,9 +186,20 @@ interface Props {
 }
 export function TokenTotalsCard({ positions, selectedToken, onSelectToken, onOpenChart, unit, onUnitChange }: Props) {
   const { t } = useTranslation();
-  const totals       = aggregateTokens(positions);
-  const marketPrices = useAppStore((s) => s.marketPrices);
-  const btcPrice     = useAppStore((s) => s.btcPrice);
+  const marketPrices    = useAppStore((s) => s.marketPrices);
+  const btcPrice        = useAppStore((s) => s.btcPrice);
+  const fetchPhase      = useAppStore((s) => s.fetchPhase);
+  const fetchedAtBlock  = useAppStore((s) => s.positionsFetchedAtBlock);
+  const fetchHealth     = useAppStore((s) => s.fetchHealth);
+
+  // Deterministic, memoized aggregation — single source of truth shared with snapshot.
+  const totals = useMemo(
+    () => aggregateTokenHoldings(positions, {
+      addressOrder:           TOKEN_ADDRESS_ORDER,
+      discoveredSymbolOrder:  DISCOVERED_SYMBOL_ORDER,
+    }),
+    [positions],
+  );
 
   // Popup state for market info
   const [popupToken, setPopupToken] = useState<TokenTotal | null>(null);
@@ -281,10 +211,21 @@ export function TokenTotalsCard({ positions, selectedToken, onSelectToken, onOpe
     <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
       className="col-span-full bg-dark-800/60 backdrop-blur-sm border border-dark-700/50 rounded-2xl p-6">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">
-          <span className="sm:hidden">Holdings</span>
-          <span className="hidden sm:inline">{t('totals.aggregateHoldings')}</span>
-        </h2>
+        <div className="flex flex-col gap-0.5">
+          <h2 className="text-sm font-semibold text-dark-300 uppercase tracking-wider">
+            <span className="sm:hidden">Holdings</span>
+            <span className="hidden sm:inline">{t('totals.aggregateHoldings')}</span>
+          </h2>
+          {(fetchPhase !== 'idle') && (
+            <span className="text-[10px] text-dark-500 font-mono">
+              {fetchPhase === 'complete'
+                ? fetchedAtBlock > 0
+                  ? <>As of block #{fetchedAtBlock} {'·'} {totals.length} tokens{fetchHealth.failed > 0 ? <span className="text-amber-400"> {'·'} {fetchHealth.failed} failed</span> : null}</>
+                  : <>Synced {'·'} {totals.length} tokens{fetchHealth.failed > 0 ? <span className="text-amber-400"> {'·'} {fetchHealth.failed} failed</span> : null}</>
+                : <>Loading{fetchPhase === 'discovery' ? ' more tokens' : ''}…</>}
+            </span>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center gap-0.5 bg-dark-900/60 rounded-lg p-0.5">
             {([

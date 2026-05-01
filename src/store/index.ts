@@ -29,6 +29,15 @@ export interface BlockPoint {
   txCount: number;
 }
 
+/** Phases of the positions fetch lifecycle. */
+export type FetchPhase = 'idle' | 'core' | 'discovery' | 'complete';
+
+/** Per-fetch health summary — surfaced so UI can warn about partial data. */
+export interface FetchHealth {
+  ok:     number;   // successful RPC calls in the latest fetch generation
+  failed: number;   // RPC calls that exhausted retries
+}
+
 interface AppState {
   // Saved addresses
   addresses: Address[];
@@ -43,7 +52,14 @@ interface AppState {
   // Cached aggregated positions (navigation-stable)
   allPositions: Position[];
   positionsLastFetched: number;  // unix ms timestamp, 0 = never
+  positionsFetchedAtBlock: number;  // block height when this fetch generation started
+  fetchPhase: FetchPhase;
+  fetchHealth: FetchHealth;
   setAllPositions: (positions: Position[]) => void;
+  setFetchPhase: (phase: FetchPhase) => void;
+  setFetchedAtBlock: (height: number) => void;
+  setFetchHealth: (health: FetchHealth) => void;
+  resetFetchHealth: () => void;
 
   // UI state
   settingsOpen: boolean;
@@ -110,8 +126,15 @@ export const useAppStore = create<AppState>()(
 
       allPositions: [],
       positionsLastFetched: 0,
+      positionsFetchedAtBlock: 0,
+      fetchPhase: 'idle',
+      fetchHealth: { ok: 0, failed: 0 },
       setAllPositions: (positions) =>
         set({ allPositions: positions, positionsLastFetched: Date.now() }),
+      setFetchPhase: (phase) => set({ fetchPhase: phase }),
+      setFetchedAtBlock: (height) => set({ positionsFetchedAtBlock: height }),
+      setFetchHealth: (health) => set({ fetchHealth: health }),
+      resetFetchHealth: () => set({ fetchHealth: { ok: 0, failed: 0 } }),
 
       settingsOpen: false,
       setSettingsOpen: (open) => set({ settingsOpen: open }),

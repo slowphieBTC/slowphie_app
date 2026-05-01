@@ -12,10 +12,10 @@ import { saveSnapshot, resolveWalletIndex, resolveTokenIndex } from './snapshotS
 import { BTC_NATIVE } from './coreTokens';
 import type { Position, Address } from '../types';
 import { useAppStore } from '../store';
+import { walkPositionHoldings, resolveHoldingContracts } from './tokenAggregation';
 
 // ── Token aggregation (mirrors aggregateTokens in TokenTotalsCard) ─────────────
-// We keep this local and minimal — only what we need for snapshot building.
-
+// Snapshot-only flat holding shape (consumed by encodeSnapshot).
 interface TokenHolding {
   walletAddress:   string;
   tokenContract:   string;  // 0x... or BTC_NATIVE for native BTC
@@ -23,86 +23,74 @@ interface TokenHolding {
   amount:          number;  // formatted token units
 }
 
+/**
+ * Extract holdings for snapshot encoding.
+ *
+ * Reuses the shared `walkPositionHoldings` + `resolveHoldingContracts` so the
+ * snapshot view and the live `TokenTotalsCard` aggregation are guaranteed to
+ * agree on the same set of holdings (no UI/snapshot drift).
+ *
+ * Snapshot-specific behaviour:
+ *  - BTC native rows are stamped with the BTC_NATIVE sentinel.
+ *  - Reward tokens that cannot be resolved to a contract address are dropped
+ *    (they have nowhere to be stored in the binary token table).
+ */
 function extractHoldings(
-  positions:         Position[],
-  symbolToContract:  Map<string, string>,  // symbol.toUpperCase() → contractAddress
+  positions:        Position[],
+  symbolToContract: Map<string, string>,
 ): TokenHolding[] {
-  const holdings: TokenHolding[] = [];
-
-  const add = (
-    walletAddress: string,
-    tokenContract: string,
-    symbol: string,
-    amount: number,
-  ) => {
-    if (!symbol || amount <= 0) return;
-    const sym = symbol.toUpperCase();
-    if (sym === 'BTC') {
-      holdings.push({ walletAddress, tokenContract: BTC_NATIVE, symbol: sym, amount });
-      return;
+  const raw      = walkPositionHoldings(positions);
+  const resolved = resolveHoldingContracts(raw, symbolToContract);
+  const out: TokenHolding[] = [];
+  for (const h of resolved) {
+    if (!(h.amount > 0)) continue;
+    if (h.symbol === 'BTC') {
+      out.push({ walletAddress: h.walletAddress, tokenContract: BTC_NATIVE, symbol: 'BTC', amount: h.amount });
+      continue;
     }
-    // Use provided contract, or fall back to symbol→contract map from /markets
-    const contract = tokenContract || symbolToContract.get(sym) || '';
-    if (!contract) return; // truly unresolvable — skip
-    holdings.push({ walletAddress, tokenContract: contract, symbol: sym, amount });
-  };
+    if (!h.tokenContract) continue; // unresolved reward token — cannot be encoded
+    out.push({
+      walletAddress: h.walletAddress,
+      tokenContract: h.tokenContract,
+      symbol:        h.symbol,
+      amount:        h.amount,
+    });
+  }
+  return out;
+}
 
-  for (const pos of positions) {
-    const addr  = pos.address;
-    const cAddr = pos.contractAddress ?? '';
+// ── Market-price prefetch (independent of snapshot save) ──────────────────────
 
-    if (pos.type === 'stake') {
-      if (pos.mchadStaking) {
-        const p = pos.mchadStaking.positions[0];
-        if (p) {
-          const staked = parseFloat(p.stakedFormatted);
-          if (staked > 0) add(addr, cAddr, 'MCHAD', staked);
-          const pending = parseFloat(p.unclaimedRewardsFormatted);
-          if (pending > 0) add(addr, '', p.rewardSymbol.toUpperCase(), pending);
-        }
-      } else {
-        if (pos.amount > 0) add(addr, cAddr, pos.token, pos.amount);
-        pos.stakingRewards?.forEach(r => {
-          if (r.pending > 0) add(addr, r.tokenAddress ?? '', r.symbol, r.pending);
-        });
-      }
-    } else if (pos.type === 'farm') {
-      if (pos.hasFarmView) {
-        if ((pos.walletBalance ?? 0) > 0) add(addr, cAddr, pos.token, pos.walletBalance!);
-        pos.farms?.forEach(f => {
-          if (f.staked  > 0) add(addr, cAddr, pos.token, f.staked);
-          if (f.pending > 0) add(addr, '',    f.rewardToken, f.pending);
-        });
-      } else {
-        if (pos.amount > 0) add(addr, cAddr, pos.token, pos.amount);
-        if (pos.rewards > 0 && pos.rewardToken) add(addr, '', pos.rewardToken, pos.rewards);
-      }
-    } else if (pos.type === 'lp') {
-      if (pos.lpUnderlying) {
-        const u = pos.lpUnderlying;
-        if (u.token0Amount > 0) add(addr, u.token0Address ?? '', u.token0Symbol, u.token0Amount);
-        if (u.token1Amount > 0) add(addr, u.token1Address ?? '', u.token1Symbol, u.token1Amount);
-      }
-      if (pos.lpUnderlyingStaked) {
-        const u = pos.lpUnderlyingStaked;
-        if (u.token0Amount > 0) add(addr, u.token0Address ?? '', u.token0Symbol, u.token0Amount);
-        if (u.token1Amount > 0) add(addr, u.token1Address ?? '', u.token1Symbol, u.token1Amount);
-      }
-      pos.farms?.forEach(f => {
-        if (f.pending > 0) add(addr, '', f.rewardToken, f.pending);
-      });
-      if (!pos.hasFarmView && pos.rewards > 0 && pos.rewardToken) {
-        add(addr, '', pos.rewardToken, pos.rewards);
-      }
-      if (pos.mchadLpStaking) {
-        const lp = pos.mchadLpStaking;
-        const pending = parseFloat(lp.unclaimedRewardsFormatted);
-        if (pending > 0) add(addr, '', lp.rewardSymbol.toUpperCase(), pending);
-      }
-    }
+/**
+ * Fetch /markets, populate Zustand `marketPrices`, and return a
+ * symbol→contract map. Safe to call eagerly (e.g. on every positions fetch)
+ * — does NOT depend on Phase-2 discovery being complete, so the
+ * `TokenTotalsCard` USD/BTC unit conversions can render correctly even while
+ * discovery is still in progress.
+ */
+export async function prefetchMarketPrices(): Promise<Map<string, string>> {
+  let marketsData: Awaited<ReturnType<typeof fetchMarkets>>;
+  try {
+    marketsData = await fetchMarkets();
+  } catch {
+    return new Map();
   }
 
-  return holdings;
+  const storePrices: Record<string, number> = { [BTC_NATIVE]: 1.0 };
+  const symbolToContract = new Map<string, string>();
+  symbolToContract.set('BTC', BTC_NATIVE);
+
+  for (const m of marketsData.markets) {
+    const p = parseFloat(m.rawPriceBtc || m.price);
+    if (p > 0 && m.routes.length > 0) {
+      storePrices[m.id.toLowerCase()] = p;
+    }
+    if (m.symbol && m.id) {
+      symbolToContract.set(m.symbol.toUpperCase(), m.id.toLowerCase());
+    }
+  }
+  useAppStore.getState().setMarketPrices(storePrices);
+  return symbolToContract;
 }
 
 // ── Main orchestrator ─────────────────────────────────────────────────────────
