@@ -282,7 +282,7 @@ export default function OpRouter() {
                 <motion.div
                   key={token.address}
                   variants={cardVariants}
-                  className="glass-card group relative p-5 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-0.5"
+                  className="glass-card group relative p-5 flex flex-col gap-4 transition-all duration-200 hover:-translate-y-0.5 cursor-pointer"
                   style={{
                     borderColor: `${style.hex}30`,
                   }}
@@ -292,11 +292,11 @@ export default function OpRouter() {
                   onMouseLeave={(e) => {
                     (e.currentTarget as HTMLDivElement).style.borderColor = `${style.hex}30`;
                   }}
+                  onClick={() => handleIconClick(token)}
                 >
                   {/* Top row: icon + symbol badge */}
                   <div className="flex items-start justify-between">
                     <button
-                      onClick={() => handleIconClick(token)}
                       className="appearance-none bg-transparent flex items-center justify-center shrink-0 overflow-hidden cursor-pointer hover:scale-110 transition-transform"
                       style={{
                         width: 44,
