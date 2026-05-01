@@ -29,6 +29,15 @@ export interface BlockPoint {
   txCount: number;
 }
 
+/** Phases of the positions fetch lifecycle. */
+export type FetchPhase = 'idle' | 'core' | 'discovery' | 'complete';
+
+/** Per-fetch health summary — surfaced so UI can warn about partial data. */
+export interface FetchHealth {
+  ok:     number;   // successful RPC calls in the latest fetch generation
+  failed: number;   // RPC calls that exhausted retries
+}
+
 interface AppState {
   // Saved addresses
   addresses: Address[];
@@ -43,7 +52,14 @@ interface AppState {
   // Cached aggregated positions (navigation-stable)
   allPositions: Position[];
   positionsLastFetched: number;  // unix ms timestamp, 0 = never
+  positionsFetchedAtBlock: number;  // block height when this fetch generation started
+  fetchPhase: FetchPhase;
+  fetchHealth: FetchHealth;
   setAllPositions: (positions: Position[]) => void;
+  setFetchPhase: (phase: FetchPhase) => void;
+  setFetchedAtBlock: (height: number) => void;
+  setFetchHealth: (health: FetchHealth) => void;
+  resetFetchHealth: () => void;
 
   // UI state
   settingsOpen: boolean;
@@ -68,6 +84,16 @@ interface AppState {
   // Dynamic token icon map: symbol (uppercase) -> image url
   tokenIcons: Record<string, string>;
   mergeTokenIcons: (icons: Record<string, string>) => void;
+
+  // Market prices: contractAddr (lowercase) → price in BTC
+  marketPrices: Record<string, number>;
+  setMarketPrices: (prices: Record<string, number>) => void;
+
+  // Background snapshot task status
+  snapshotIsSaving: boolean;
+  setSnapshotIsSaving: (v: boolean) => void;
+  snapshotLastSavedTs: number | null;
+  setSnapshotLastSavedTs: (ts: number) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -100,8 +126,15 @@ export const useAppStore = create<AppState>()(
 
       allPositions: [],
       positionsLastFetched: 0,
+      positionsFetchedAtBlock: 0,
+      fetchPhase: 'idle',
+      fetchHealth: { ok: 0, failed: 0 },
       setAllPositions: (positions) =>
         set({ allPositions: positions, positionsLastFetched: Date.now() }),
+      setFetchPhase: (phase) => set({ fetchPhase: phase }),
+      setFetchedAtBlock: (height) => set({ positionsFetchedAtBlock: height }),
+      setFetchHealth: (health) => set({ fetchHealth: health }),
+      resetFetchHealth: () => set({ fetchHealth: { ok: 0, failed: 0 } }),
 
       settingsOpen: false,
       setSettingsOpen: (open) => set({ settingsOpen: open }),
@@ -140,6 +173,14 @@ export const useAppStore = create<AppState>()(
       },
       mergeTokenIcons: (icons) =>
         set((s) => ({ tokenIcons: { ...s.tokenIcons, ...icons } })),
+
+      marketPrices: {},
+      setMarketPrices: (prices) => set({ marketPrices: prices }),
+
+      snapshotIsSaving: false,
+      setSnapshotIsSaving: (v) => set({ snapshotIsSaving: v }),
+      snapshotLastSavedTs: null,
+      setSnapshotLastSavedTs: (ts) => set({ snapshotLastSavedTs: ts }),
     }),
     {
       name: 'motostrategy-storage',

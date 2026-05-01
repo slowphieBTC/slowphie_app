@@ -1,5 +1,80 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import { useAppStore } from '../store';
+import { useEffect, useState } from 'react';
+import { fetchOraclePrices, fetchLatestBlock } from '../api/slowphie';
+
+/**
+ * Feed connection status — reflects whether the Slowphie Server
+ * REST endpoints are reachable and returning valid data.
+ *
+ * Replaces the old BlockFeed WebSocket connection with simple
+ * health-check polling.
+ */
+
+// Shared state — survives re-renders and remounts
+let _lastOk = false;
+let _listeners = new Set<(connected: boolean) => void>();
+let _pollTimer: ReturnType<typeof setInterval> | null = null;
+let _refCount = 0;
+
+function notifyAll(connected: boolean) {
+  if (_lastOk === connected) return;
+  _lastOk = connected;
+  _listeners.forEach((fn) => fn(connected));
+}
+
+async function healthCheck() {
+  try {
+    const [block, oracle] = await Promise.all([
+      fetchLatestBlock(),
+      fetchOraclePrices(),
+    ]);
+    notifyAll(block.ok && Array.isArray(oracle.data));
+  } catch {
+    notifyAll(false);
+  }
+}
+
+function startPolling() {
+  if (_pollTimer) return;
+  healthCheck(); // immediate first check
+  _pollTimer = setInterval(healthCheck, 15_000);
+}
+
+function stopPolling() {
+  if (_pollTimer) {
+    clearInterval(_pollTimer);
+    _pollTimer = null;
+  }
+}
+
+/** Returns true when the Slowphie feed is reachable */
+export function useFeedConnected(): boolean {
+  const [connected, setConnected] = useState<boolean>(_lastOk);
+
+  useEffect(() => {
+    _listeners.add(setConnected);
+    _refCount++;
+    startPolling();
+
+    return () => {
+      _listeners.delete(setConnected);
+      _refCount--;
+      if (_refCount <= 0) {
+        _refCount = 0;
+        stopPolling();
+        _lastOk = false;
+      }
+    };
+  }, []);
+
+  return connected;
+}
+
+// ── Backwards-compatible aliases ──────────────────────────────────────
+// StatsBar and App still import these names; keep them working
+export const useBlockFeedConnected = useFeedConnected;
+export const useBlockFeedStream = (_onEvent?: unknown) => {
+  // No-op: data now comes from useBtcPrice polling
+};
 
 export interface BlockEvent {
   type: 'block';
@@ -18,163 +93,7 @@ export interface PriceEvent {
 
 export type StreamEvent = BlockEvent | PriceEvent;
 
-const WS_URL = 'wss://api.blockfeed.online/v1/stream';
-
-type Listener = (event: StreamEvent) => void;
-type ConnectListener = (connected: boolean) => void;
-
-// Singleton WebSocket manager
-let activeSocket: WebSocket | null = null;
-let listeners: Set<Listener> = new Set();
-let connectListeners: Set<ConnectListener> = new Set();
-let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-let isConnecting = false;
-let isConnected = false;
-
-function notifyConnected(connected: boolean) {
-  isConnected = connected;
-  connectListeners.forEach((fn) => fn(connected));
-}
-
-function connect() {
-  if (activeSocket?.readyState === WebSocket.OPEN || isConnecting) return;
-  if (activeSocket?.readyState === WebSocket.CONNECTING) return;
-  isConnecting = true;
-
-  try {
-    const socket = new WebSocket(WS_URL);
-    activeSocket = socket;
-
-    socket.onopen = () => {
-      isConnecting = false;
-      console.log('[BlockFeed WS] Connected');
-      notifyConnected(true);
-      if (socket.readyState === WebSocket.OPEN) {
-        try {
-          socket.send(JSON.stringify({ action: 'subscribe', channels: ['blocks', 'prices'] }));
-        } catch {
-          // ignore send errors
-        }
-      }
-    };
-
-    socket.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data as string) as Record<string, unknown>;
-        let event: StreamEvent | null = null;
-
-        if (msg.type === 'block' || msg.event === 'block' || msg.height !== undefined) {
-          const blockHeight = Number(msg.height ?? msg.blockNumber ?? 0);
-          // Ignore invalid/zero height events
-          if (blockHeight > 0) {
-            event = {
-              type: 'block',
-              height: blockHeight,
-              hash: String(msg.hash ?? ''),
-              timestamp: Number(msg.timestamp ?? Date.now()),
-              transactions: Number(msg.transactions ?? msg.txCount ?? 0),
-            };
-          }
-        }
-
-        if (msg.type === 'price' || msg.event === 'price' || msg.symbol !== undefined) {
-          event = {
-            type: 'price',
-            symbol: String(msg.symbol ?? 'BTC'),
-            price: Number(msg.price ?? 0),
-            change24h: msg.change24h !== undefined ? Number(msg.change24h) : undefined,
-          };
-        }
-
-        if (event) {
-          listeners.forEach((fn) => fn(event!));
-        }
-      } catch {
-        // ignore parse errors
-      }
-    };
-
-    socket.onerror = () => {
-      isConnecting = false;
-    };
-
-    socket.onclose = () => {
-      isConnecting = false;
-      if (activeSocket === socket) {
-        activeSocket = null;
-        notifyConnected(false);
-      }
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(() => {
-        if (listeners.size > 0 || connectListeners.size > 0) connect();
-      }, 5000);
-    };
-  } catch {
-    isConnecting = false;
-  }
-}
-
-function disconnect() {
-  if (reconnectTimer) clearTimeout(reconnectTimer);
-  reconnectTimer = null;
-  activeSocket?.close();
-  activeSocket = null;
-  isConnecting = false;
-}
-
-/** Subscribe to stream events */
-export function useBlockFeedStream(onEvent?: (event: StreamEvent) => void) {
-  const setBtcPrice = useAppStore((s) => s.setBtcPrice);
-
-  const handler = useCallback((event: StreamEvent) => {
-    if (event.type === 'price' && event.symbol.toUpperCase().includes('BTC')) {
-      setBtcPrice(event.price);
-    }
-    onEvent?.(event);
-  }, [onEvent, setBtcPrice]);
-
-  useEffect(() => {
-    listeners.add(handler);
-    connect();
-    return () => {
-      listeners.delete(handler);
-      if (listeners.size === 0 && connectListeners.size === 0) disconnect();
-    };
-  }, [handler]);
-}
-
-/** Returns true when the WebSocket is open */
-export function useBlockFeedConnected(): boolean {
-  // Initialise with current state so it's correct even if already connected
-  const [connected, setConnected] = useState<boolean>(isConnected);
-
-  useEffect(() => {
-    // Sync immediately in case the socket opened between renders
-    setConnected(isConnected);
-
-    const handler: ConnectListener = (c) => setConnected(c);
-    connectListeners.add(handler);
-    // Trigger a connection attempt if not already connecting/connected
-    connect();
-
-    return () => {
-      connectListeners.delete(handler);
-      if (listeners.size === 0 && connectListeners.size === 0) disconnect();
-    };
-  }, []);
-
-  return connected;
-}
-
-/** Simple hook that provides latest block info via ref */
 export function useLatestBlock() {
-  const blockRef = useRef<{ height: number; timestamp: number } | null>(null);
-
-  useBlockFeedStream(useCallback((event: StreamEvent) => {
-    if (event.type === 'block') {
-      blockRef.current = { height: event.height, timestamp: event.timestamp };
-    }
-  }, []));
-
-  return blockRef;
+  // Delegated to useBtcPrice → store.latestBlock
+  return { current: null };
 }

@@ -1,0 +1,67 @@
+{
+  "card": {
+    "title": "NativeSwap DEX Mechanics",
+    "subtitle": "Application — How do I use it?",
+    "description": "Trace the full lifecycle of a NativeSwap trade from listing to BTC settlement. Understand virtual AMM, queues, and why there is no instant sell.",
+    "difficulty": "Intermediate",
+    "keyTopics": [
+      "Virtual AMM",
+      "x*y=k Formula",
+      "Standard vs Priority Queue",
+      "P2P Settlement"
+    ]
+  },
+  "quiz": [
+    {
+      "question": "What formula does NativeSwap's virtual AMM use?",
+      "options": [
+        "x + y = k (constant sum)",
+        "x / y = k (constant ratio)",
+        "x * y = k (constant product)",
+        "x ^ y = k (exponential)"
+      ],
+      "explanation": "NativeSwap uses the constant product formula x*y=k. The product of two virtual reserve quantities must remain constant after each trade. When one decreases, the other increases — automatically changing price."
+    },
+    {
+      "question": "What fee does the standard queue charge?",
+      "options": [
+        "0.1% on the token side",
+        "0.2% on the token side",
+        "1% on the token side",
+        "5% on the token side"
+      ],
+      "explanation": "The standard queue charges 0.2% taken from the token side. Listings fill in FIFO order. Lower fee but no queue-jumping."
+    },
+    {
+      "question": "What fee does the priority queue charge?",
+      "options": [
+        "0.2%",
+        "1%",
+        "2.5%",
+        "5%"
+      ],
+      "explanation": "The priority queue charges 5% taken from the token side. In return, sellers skip ahead of standard queue listings for faster fills."
+    },
+    {
+      "question": "When a buyer sends BTC in a NativeSwap trade, where does it go?",
+      "options": [
+        "Into a liquidity pool smart contract",
+        "To the NativeSwap contract treasury",
+        "Directly to the seller's wallet address",
+        "To a bridge escrow address"
+      ],
+      "explanation": "BTC goes directly from the buyer's wallet to the seller's wallet address — P2P on Bitcoin L1. The smart contract verifies the payment but never touches the BTC. This is verify-don't-custody."
+    },
+    {
+      "question": "Why is there no instant sell on NativeSwap?",
+      "options": [
+        "It's a bug that will be fixed later",
+        "For a trustless sell, a buyer must exist and Bitcoin must confirm in a block (~10 min)",
+        "The contract processes too slowly",
+        "You need to stake MOTO tokens first"
+      ],
+      "explanation": "If a sell settles 'instantly,' someone is holding BTC on your behalf (custodian). Trustless settlement requires a real buyer and a real Bitcoin block confirmation. The queue is what trustless actually looks like."
+    }
+  ],
+  "content": "# MODULE 03: NativeSwap DEX Mechanics\n\n> **Stage:** Application — How do I use it?\n\n---\n\n## 📌 Learning Objective\n\n> By the end of this module, students will be able to **trace the full lifecycle of a NativeSwap trade** — from listing tokens through to BTC settlement — and **explain why each step is trustless**.\n\n---\n\n## 📚 Key Concepts Covered\n\n- **Virtual AMM** — an Automated Market Maker that uses AMM pricing math but P2P settlement instead of real liquidity pools\n- **x\\*y=k formula** — the constant product formula that determines token price based on virtual reserves\n- **Standard queue vs Priority queue** — the two ways to list tokens for sale on NativeSwap, with different fee structures\n- **BTC P2P settlement** — the buyer sends BTC directly to the seller; the contract never touches it\n- **Minimum wallet requirement** — approximately 50,000 sats needed to cover fees, reserve, and RBF\n- **RBF (Replace-By-Fee)** — a Bitcoin mechanism to replace a stuck transaction with a higher-fee version\n- **Fee structure** — 0.2% fee on token side for standard queue and buying; 5% fee for priority queue\n\n---\n\n## 🧠 Core Lesson Content\n\n### What Is NativeSwap?\n\nNativeSwap is the first real Decentralized Exchange (DEX) on Bitcoin Layer 1. It lets you trade OP20 tokens for BTC — and vice versa — with no custodian, no bridge, no wrapped tokens, and no marketplace controlling the matching.\n\nIt launched on mainnet as part of MotoSwap in early April 2026.\n\n---\n\n### Is NativeSwap an AMM?\n\nYes and no. It is a **virtual AMM**.\n\nA traditional AMM (like Uniswap) works like this:\n- Liquidity providers deposit Token A and Token B into a pool\n- The pool uses the formula **x \\* y = k** (constant product) to set prices automatically\n- Buyers and sellers trade against the pool\n\nNativeSwap uses the same **x \\* y = k** pricing math, but there is no real pool. Instead:\n- The contract tracks **virtual reserves** — numbers that represent what the pool *would* look like\n- When a buyer appears, the contract uses those virtual reserves to calculate the fair price\n- Actual settlement is P2P: the buyer sends BTC directly to the seller, the contract releases tokens\n\nThis hybrid approach was forced by Bitcoin's rules. You cannot have a real BTC liquidity pool because contracts cannot hold BTC. So NativeSwap invented virtual reserves: AMM math for pricing, orderbook-style queue for settlement.\n\n**AMM pricing + P2P settlement = the only design that works honestly on Bitcoin L1.**\n\n---\n\n### The Trade Flow: Step by Step\n\n#### Selling Tokens (Listing)\n\n1. You have OP20 tokens and want BTC\n2. You list your tokens on the queue — either Standard Queue or Priority Queue\n3. Your tokens enter contract state (the contract now tracks your listing)\n4. You wait for a buyer\n\n**Standard Queue:**\n- Fee: 0.2% taken from the token side\n- Your listing sits in line, first-in first-served\n- Normal wait time depending on buyer volume\n\n**Priority Queue:**\n- Fee: 5% taken from the token side\n- You skip ahead of standard queue listings\n- Get filled faster, but pay a premium for the privilege\n\nIn both cases, the fee is taken in **tokens**, not in BTC. The contract holds your listed tokens in state while waiting for a buyer.\n\n#### Buying Tokens (Purchasing)\n\n1. You want tokens and have BTC\n2. You decide how many tokens you want\n3. The virtual AMM calculates the price based on current virtual reserves and queue depth\n4. You **reserve** the tokens — the contract sets them aside for you\n5. You send BTC **directly from your wallet to the seller's wallet address** — no contract in the middle\n6. The contract verifies that the BTC payment arrived at the correct address\n7. The contract releases the tokens to you\n\nFee for buying: 0.2% taken from the token side (you receive slightly fewer tokens than the raw price quote).\n\n---\n\n### Why There Is No Instant Sell\n\nThis question comes up constantly at launch. The answer is architecture, not a bug.\n\nFor you to \"instantly sell\" tokens, a buyer must exist right now, with BTC in hand, and the Bitcoin transaction settling that BTC must confirm in a block. Bitcoin blocks take ~10 minutes.\n\nThere is no shortcut:\n- If it settles \"instantly,\" someone is holding BTC on your behalf (custodian)\n- If it settles \"instantly\" on another chain, it is not Bitcoin\n- If it settles \"instantly\" with IOUs, you do not actually have BTC until they honor the IOU\n\n**The queue is not a flaw. The queue is what trustless looks like.**\n\nIf someone tells you they offer instant trustless Bitcoin settlement, they are either lying or redefining words. Bitcoin settles in blocks. That is not an engineering problem. It is physics.\n\n---\n\n### NativeSwap vs BRC-20 Marketplaces: Key Differences\n\n| Feature | BRC-20 Marketplace | NativeSwap |\n|---------|-------------------|------------|\n| Price setting | Sellers set prices manually | Virtual AMM calculates automatically |\n| Order matching | Off-chain by marketplace | On-chain by smart contract |\n| Custom amounts | Must buy pre-set listing chunks | Choose exact amount you want |\n| BTC movement | PSBT swap via marketplace | Direct P2P buyer-to-seller |\n| Custodian | Marketplace is the trust layer | No custodian anywhere |\n| Delistable | Yes, marketplace can delist your token | No, contract has no owner control |\n| Consensus | Indexer-dependent (disagreements possible) | Cryptographic checksum root (no disagreement possible) |\n\nThe most practical difference: on BRC-20 markets, if you want 3,742 tokens and no listing is exactly that size, you are stuck piecing together multiple listings. On NativeSwap, you type in the amount you want and the AMM fills it from the queue automatically.\n\n---\n\n### The Fee Distribution\n\nAll fees from NativeSwap trades go to the **staking contract**, where they are distributed to MOTO stakers. The distribution is turned on per-token, not for every token at once. Why?\n\nBecause turning on reward distribution for every token simultaneously would be prohibitively expensive in gas:\n- Every swap with distribution enabled requires additional on-chain computation\n- If 50 tokens are enabled, every swap must update 50 sets of reward calculations\n- This scales exponentially with the number of tokens\n- Bitcoin blocks have limited space; OPNet transactions sit inside Bitcoin transactions\n- Enabling tokens gradually — starting with highest volume — keeps gas costs manageable\n\nThis is not unique to OPNet. The same constraint applies to any smart contract chain.\n\n---\n\n### Wallet Requirements\n\nTo use NativeSwap, your OP_WALLET needs:\n- At least **~50,000 satoshis (0.0005 BTC)** in spendable balance\n- This covers: Bitcoin network fees + reserve fee + minimum swap amount + RBF fee buffer\n\nImportant: check your **spendable** balance, not your total balance. If some sats are locked in CSV timelocked outputs from previous swaps, they are not available until the timelock expires.\n\n---\n\n## 💡 Insight From Discussion\n\n> *\"On NativeSwap you pick your amount. The virtual AMM calculates the price, the contract fills your order across multiple sellers in the queue automatically. You say 'I want this much' and the system handles the rest. No hunting through listings trying to piece together the amount you actually want.\"*\n> — Bob\n\n---\n\n## ⚠️ Common Mistake / Misconception\n\n**Misconception: \"The queue not filling immediately means the protocol is broken.\"**\n\nThe queue filling speed depends on buyer demand. If there are no buyers for your token, your listing will sit in the queue — exactly the same as any real market. A thin market moves slowly. This is supply and demand, not a protocol failure.\n\nThe people who farmed airdrop points on testnet for two years without learning how the queue works, then panicked at launch when they couldn't instantly sell, were not victims of a broken protocol. They were victims of their own decision not to read the documentation.\n\n---\n\n## 🔨 Practical Exercise\n\n**Exercise 1 — Trace a Trade**\n\nWalk through this trade step by step:\n\n> Alice has 10,000 MOTO tokens and wants BTC. She lists on the standard queue.\n> Bob has 0.005 BTC and wants MOTO tokens. He wants to buy 9,500 MOTO.\n\nAnswer these questions:\n1. What fee does Alice pay when listing? (Standard queue = 0.2% of tokens)\n2. How does the virtual AMM calculate the price Bob pays?\n3. Where does Bob's BTC go? (To Alice's wallet directly, or to a contract?)\n4. Who verifies that the payment arrived?\n5. Where do the 0.2% fees go?\n\n**Exercise 2 — Queue Strategy**\n\nYou have 100,000 MOTO and need to sell urgently. You have two choices:\n- Standard queue: 0.2% fee, wait your turn\n- Priority queue: 5% fee, skip the line\n\nAt what price difference between the two does the priority fee \"pay for itself\"?\nIf MOTO is worth $0.01, how many dollars do you lose to the priority fee vs the standard fee on 100,000 tokens?\n\n---\n\n## ✅ Check Your Understanding\n\n1. What does \"virtual AMM\" mean and why does NativeSwap use virtual reserves instead of real ones?\n2. Write the constant product formula and explain what happens to the price when someone buys tokens.\n3. What are the two queue types and their respective fee percentages?\n4. When a buyer sends BTC in a NativeSwap trade, whose wallet address receives it?\n5. Why does the NativeSwap minimum wallet requirement include an RBF buffer?\n\n---\n\n## 🔗 Connection to Next Module\n\nNow that you understand how NativeSwap works, Module 04 puts it in context: how does it compare to every other \"Bitcoin DeFi\" system that has been built or attempted, and why do all the others fall short?\n"
+}

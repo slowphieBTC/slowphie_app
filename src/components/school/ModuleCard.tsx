@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Module } from '../../types';
+import { useModuleTranslation } from '../../hooks/useModuleTranslation';
 
 interface Props {
   module: Module;
@@ -13,6 +14,13 @@ interface Props {
 export function ModuleCard({ module: mod, isUnlocked, isCompleted, score, index }: Props) {
   const navigate = useNavigate();
   const [shaking, setShaking] = useState(false);
+  const moduleTranslation = useModuleTranslation(mod.id);
+
+  const title = moduleTranslation?.card.title ?? mod.title;
+  const subtitle = moduleTranslation?.card.subtitle ?? mod.subtitle;
+  const description = moduleTranslation?.card.description ?? mod.description;
+  const difficulty = moduleTranslation?.card.difficulty ?? mod.difficulty;
+  const keyTopics = moduleTranslation?.card.keyTopics ?? mod.keyTopics;
 
   const handleClick = () => {
     if (!isUnlocked) {
@@ -81,9 +89,9 @@ export function ModuleCard({ module: mod, isUnlocked, isCompleted, score, index 
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.2rem' }}>
               <span style={{ fontSize: '0.58rem', fontWeight: 700, padding: '0.12rem 0.4rem', borderRadius: '999px', background: 'rgba(255,255,255,0.05)', color: '#94a3b8' }}>MODULE {String(mod.id).padStart(2,'0')}</span>
-              <span style={{ fontSize: '0.58rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '999px', background: mod.difficultyColor + '12', color: mod.difficultyColor, border: `1px solid ${mod.difficultyColor}22` }}>{mod.difficulty}</span>
+              <span style={{ fontSize: '0.58rem', fontWeight: 700, padding: '0.12rem 0.45rem', borderRadius: '999px', background: mod.difficultyColor + '12', color: mod.difficultyColor, border: `1px solid ${mod.difficultyColor}22` }}>{difficulty}</span>
             </div>
-            <h3 style={{ color: isUnlocked ? '#f0f0f0' : '#4a5568', fontWeight: 800, fontSize: '0.95rem', margin: 0, lineHeight: 1.3 }}>{mod.title}</h3>
+            <h3 style={{ color: isUnlocked ? '#f0f0f0' : '#4a5568', fontWeight: 800, fontSize: '0.95rem', margin: 0, lineHeight: 1.3 }}>{title}</h3>
           </div>
         </div>
         <div style={{ flexShrink: 0 }}>
@@ -99,13 +107,12 @@ export function ModuleCard({ module: mod, isUnlocked, isCompleted, score, index 
 
       {/* Description */}
       <p style={{ color: '#94a3b8', fontSize: '0.82rem', lineHeight: 1.65, margin: '0 0 1rem' }}>
-        {isUnlocked ? mod.description : 'Complete the previous module quiz (50%+) to unlock this module.'}
+        {isUnlocked ? description : 'Complete the previous module quiz (50%+) to unlock this module.'}
       </p>
-
 
       {/* Topics — always visible */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3rem', marginBottom: '1rem' }}>
-        {mod.keyTopics.map(t => (
+        {keyTopics.map(t => (
           <span key={t} style={{ fontSize: '0.6rem', padding: '0.15rem 0.5rem', borderRadius: '4px', background: 'rgba(255,255,255,0.06)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.12)' }}>{t}</span>
         ))}
       </div>

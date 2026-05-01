@@ -1,0 +1,420 @@
+{
+  "common": {
+    "loading": "加载中…",
+    "error": "错误",
+    "back": "返回",
+    "close": "关闭",
+    "refresh": "刷新",
+    "refreshing": "刷新中…",
+    "copied": "已复制！",
+    "copy": "复制完整地址",
+    "settings": "设置",
+    "clear": "清除",
+    "custom": "自定义",
+    "live": "实时数据",
+    "connecting": "连接中…",
+    "noData": "—",
+    "seeAlso": "另请参阅："
+  },
+  "nav": {
+    "home": "首页",
+    "tracks": "追踪",
+    "minter": "铸造",
+    "school": "学院",
+    "about": "关于",
+    "settings": "设置",
+    "glossary": "词汇表 →",
+    "router": "路由"
+  },
+  "home": {
+    "title": "欢迎来到",
+    "subtitle": "您的 OP_NET 驱动 DeFi 仪表板",
+    "about": "关于",
+    "modules": {
+      "tracks": {
+        "title": "追踪",
+        "label": "追踪",
+        "description": "多钱包 DeFi 追踪器"
+      },
+      "minter": {
+        "title": "铸造",
+        "label": "铸造",
+        "description": "抢先获取免费 OP-20 铸造机会"
+      },
+      "school": {
+        "title": "学院",
+        "label": "学习",
+        "description": "学习比特币和 OP_NET"
+      },
+      "router": {
+        "title": "路由",
+        "label": "路由",
+        "description": "寻找最佳路径"
+      }
+    }
+  },
+  "tracks": {
+    "heroTitle": "追踪您的",
+    "heroGradient": "持仓",
+    "heroSubtitle": "实时监控多个钱包中所有 MotoSwap 质押、挖矿和流动性持仓。",
+    "sectionTitle": "追踪",
+    "addressCount_one": "{{count}} 个地址",
+    "addressCount_other": "{{count}} 个地址",
+    "positionCount_one": "检测到 {{count}} 个持仓",
+    "positionCount_other": "检测到 {{count}} 个持仓",
+    "shownCount": "显示 {{count}} 个",
+    "openSettings": "打开设置",
+    "clearFilters": "清除",
+    "filterClearTitle": "清除筛选",
+    "fetchingPositions": "获取链上持仓中…",
+    "failedToLoad": "加载持仓失败",
+    "noPositions": "未检测到此地址的 DeFi 持仓",
+    "noPositionsHint": "请确保该地址已与 MotoSwap 合约交互",
+    "noAddressesTitle": "未追踪任何地址",
+    "noAddressesDesc": "在设置中添加您的比特币 taproot 或 OPNet 地址，开始追踪您的 DeFi 持仓。",
+    "badges": {
+      "stake": "质押",
+      "harvest": "收获",
+      "lp": "LP",
+      "token": "代币",
+      "custom": "自定义"
+    }
+  },
+  "minter": {
+    "heroTitle": "在",
+    "heroGradient": "比特币上铸造",
+    "heroSubtitle": "连接您的 OP_WALLET，直接在比特币 L1 智能合约平台上铸造 OP-20 代币。",
+    "sortBy": "排序方式",
+    "deployDate": "部署日期",
+    "mintsLeft": "剩余铸造次数",
+    "ascending": "↑ 升序",
+    "descending": "↓ 降序",
+    "oldestFirst": "· 最旧优先",
+    "newestFirst": "· 最新优先",
+    "fewestMintsFirst": "· 最少铸造次数优先",
+    "mostMintsFirst": "· 最多铸造次数优先",
+    "minted": "已铸造",
+    "supply": "供应量：",
+    "max": "最大值：",
+    "perMint": "每次铸造",
+    "yourBalance": "您的余额",
+    "contract": "合约",
+    "mintedSuccess": "铸造成功！",
+    "transactionId": "交易 ID：",
+    "fees": "费用：{{fees}} sats",
+    "mintAgain": "再次铸造",
+    "mintFailed": "铸造失败",
+    "tryAgain": "重试",
+    "connectToMint": "🔗 连接钱包以铸造",
+    "mintToken": "{{icon}} 铸造 {{name}}",
+    "simulating": "模拟中…",
+    "signInWallet": "在钱包中签名…",
+    "requiresExtension": "需要 OP_WALLET 浏览器扩展",
+    "layoutGrid": "网格视图",
+    "layoutRow": "列表视图",
+    "token": "代币",
+    "progress": "进度",
+    "action": "操作"
+  },
+  "school": {
+    "heroTitle": "学习",
+    "heroGradient": "比特币",
+    "heroSubtitle": "从比特币基本规则到量子密码学。7 个模块，真实练习，零废话。",
+    "statsModules": "模块",
+    "statsQuestions": "问题",
+    "statsTerms": "术语",
+    "statsLevel": "级别",
+    "yourProgress": "您的进度",
+    "modulesProgress": "{{done}}/7 模块",
+    "percentComplete": "{{pct}}% 完成",
+    "courseModules": "课程模块",
+    "legendCompleted": "已完成",
+    "legendAvailable": "可用",
+    "legendLocked": "已锁定",
+    "moduleNotFound": "未找到模块。",
+    "backToSchool": "← 返回学院",
+    "allModules": "← 所有模块",
+    "moduleCompleted": "✓ 已完成",
+    "quizScore": "测验分数",
+    "practicalExercises": "实践练习",
+    "moduleCompleteRetake": "模块完成！重新测试以提高分数。",
+    "readyToTest": "准备好测试您的知识了吗？",
+    "questionsUnlock": "{{count}} 道题 · 50%+ 解锁下一个",
+    "retakeQuiz": "重新测验",
+    "takeQuiz": "参加测验",
+    "moduleLockedBtn": "🔒 模块 {{id}}",
+    "moduleNavPrev": "← 模块 {{id}}",
+    "moduleNavNext": "模块 {{id}} →",
+    "breadcrumbModule": "模块 {{id}}：{{title}}"
+  },
+  "glossary": {
+    "title": "词汇表",
+    "backToSchool": "← 学院",
+    "subtitle": "OPNet 和比特币 DeFi 课程中的所有关键术语，用通俗语言定义。",
+    "searchPlaceholder": "搜索 40+ 个比特币 DeFi 术语...",
+    "showing": "显示",
+    "of": "共",
+    "termsLabel": "个术语",
+    "matching": "匹配",
+    "clearBtn": "清除",
+    "noTermsFound": "未找到术语",
+    "tryDifferent": "请尝试不同的关键词。",
+    "termCount_one": "{{count}} 个术语",
+    "termCount_other": "{{count}} 个术语"
+  },
+  "about": {
+    "heroTitle": "关于",
+    "heroGradient": "Slowphie",
+    "heroSubtitle": "Slowphie 是一款基于 OP_NET 构建的比特币 DeFi 伴侣应用 — 唯一在比特币 L1 上原生运行的智能合约平台，无需桥接或侧链。三个模块，一个使命：追踪、铸造和学习。",
+    "backToHome": "← 返回首页",
+    "liveData": "实时数据",
+    "updatedAt": "更新于 {{time}}",
+    "nextScan": "· 下次扫描 {{time}}",
+    "statsTokens": "代币",
+    "statsLpPools": "LP 池",
+    "statsFarms": "农场",
+    "startHereTitle": "💡 从这里开始",
+    "startHereBody": "比特币 DeFi 确实很复杂。在质押、挖矿或铸造之前，花几天时间阅读这些模块。了解它的人会得到技术奖励 — 不了解的人会受到惩罚。",
+    "techSpecs": "技术规格",
+    "loading": "加载中…",
+    "footerText": "基于 OPNet 构建 · 比特币主网 · 无桥接 · 无托管",
+    "tracksBtn": "📊 追踪",
+    "minterBtn": "🪙 铸造",
+    "schoolBtn": "🎓 学院",
+    "openArrow": "打开 →",
+    "sections": {
+      "tracks": {
+        "label": "追踪",
+        "tagline": "追踪您的 MotoSwap 持仓",
+        "description": "Tracks 为您提供所有 MotoSwap DeFi 持仓的实时概览，跨多个比特币钱包 — 无需登录或托管。",
+        "features": {
+          "multiWallet": {
+            "title": "多钱包追踪",
+            "desc": "同时监控所有地址的质押、挖矿和 LP 持仓。"
+          },
+          "livePrice": {
+            "title": "实时 BTC 价格和区块数据",
+            "desc": "由 Slowphie Server 提供 — 价格和区块高度通过 REST 轮询每 30 秒更新。"
+          },
+          "aggregation": {
+            "title": "完整持仓聚合",
+            "desc": "MOTO 质押、BTC 原生农场、LP 对、代币钱包余额、MCHAD 自定义质押 — 所有持仓类型在一个统一视图中。"
+          },
+          "mchad": {
+            "title": "MCHAD 自定义 LP 质押",
+            "desc": "完全可见 MotoCHAD 协议持仓：MCHAD 质押、带时间锁定乘数的 MCHAD/MOTO LP 质押、加权金额和未领取的 MCHAD 奖励。"
+          },
+          "lpComposition": {
+            "title": "LP 池组成",
+            "desc": "对于每个 LP 持仓，使用实时链上储备查看确切的底层代币金额（例如 MOTO + PILL）。"
+          },
+          "tokenTotals": {
+            "title": "代币总计卡片",
+            "desc": "汇总所有追踪钱包中的代币持有量，获得完整的投资组合快照。"
+          },
+          "refresh": {
+            "title": "区块驱动刷新",
+            "desc": "检测到新的比特币区块时自动刷新数据。导航离开再返回 — 无需重新加载。"
+          }
+        },
+        "spec": {
+          "dataSource": "数据来源",
+          "trackedTokens": "追踪代币",
+          "trackedLpPools": "追踪 LP 池",
+          "farmsTracked": "追踪农场",
+          "supportedPositions": "支持的持仓",
+          "customProtocol": "自定义协议",
+          "cacheStrategy": "缓存策略",
+          "custody": "托管",
+          "lastServerScan": "上次服务器扫描"
+        }
+      },
+      "minter": {
+        "label": "铸造",
+        "tagline": "发现并铸造隐藏的 OP-20 代币",
+        "description": "Minter 帮助您直接在比特币 L1 智能合约平台上找到并铸造免费的 OP-20 代币。有些代币在 MotoSwap 上难以发现 — Minter 为您找到它们。",
+        "features": {
+          "hiddenGem": {
+            "title": "隐藏宝藏检测",
+            "desc": "一些可铸造的代币在 MotoSwap 的标准界面中不可见。Minter 会找到它们。"
+          },
+          "oneClick": {
+            "title": "一键铸造",
+            "desc": "连接您的 OP_WALLET 浏览器扩展，每个代币只需单击一次即可铸造。"
+          },
+          "supplyBar": {
+            "title": "供应进度条",
+            "desc": "在铸造前查看总供应量与流通供应量 — 了解代币的稀缺程度。"
+          },
+          "walletBalance": {
+            "title": "钱包余额显示",
+            "desc": "连接后实时显示您对每个代币的当前持有量。"
+          },
+          "mintStatus": {
+            "title": "铸造状态反馈",
+            "desc": "清晰的交易状态：空闲 → 等待中 → 已确认，含错误处理。"
+          }
+        },
+        "spec": {
+          "protocol": "协议",
+          "wallet": "钱包",
+          "tokensAvailable": "可用代币",
+          "platformFee": "平台费用",
+          "settlement": "结算"
+        },
+        "feeNote": "每笔铸造交易中包含 1,000 sats 的小额平台费，用于支持 Slowphie 基础设施。"
+      },
+      "school": {
+        "label": "学院",
+        "tagline": "学习比特币和 OPNet — 在 DeFi 之前",
+        "description": "学院是使用 Tracks 或 Minter 之前的必要第一步。比特币 DeFi 技术复杂 — 了解基础知识可以保护您的资金并提高您的决策能力。",
+        "features": {
+          "modules": {
+            "title": "7 个进阶模块",
+            "desc": "从比特币基础到量子密码学 — 每个模块在通过上一个测验后解锁。"
+          },
+          "quiz": {
+            "title": "35 道测验题",
+            "desc": "真实的多项选择题，含解释。得分 50%+ 解锁下一个模块。"
+          },
+          "glossary": {
+            "title": "40+ 个词汇表术语",
+            "desc": "所有比特币 DeFi 术语的可搜索词汇表，用通俗语言定义。"
+          },
+          "exercises": {
+            "title": "实践练习",
+            "desc": "每个模块包含动手练习，带自动保存的答案字段，本地存储。"
+          },
+          "progress": {
+            "title": "本地保存进度",
+            "desc": "测验分数和练习答案在您的浏览器中持久保存 — 跨多个会话继续。"
+          }
+        },
+        "spec": {
+          "modules": "模块",
+          "topics": "主题",
+          "quizThreshold": "测验阈值",
+          "storage": "存储",
+          "estimatedTime": "预计时间"
+        }
+      }
+    }
+  },
+  "appbar": {
+    "brand": "Slowphie",
+    "beta": "测试版",
+    "logoAlt": "Slowphie 标志"
+  },
+  "positions": {
+    "motoswapStake": "MotoSwap 质押",
+    "badge": {
+      "stake": "质押",
+      "farm": "农场",
+      "token": "代币",
+      "lp": "LP",
+      "custom": "自定义"
+    },
+    "staked": "已质押",
+    "pendingRewards": "待领奖励",
+    "noPendingRewards": "无待领奖励",
+    "walletBalance": "钱包余额",
+    "noFarmPositions": "未检测到农场持仓",
+    "notStakedAnyFarm": "未在任何农场质押 — 切换标签查看详情",
+    "alreadyStaked": "已质押",
+    "pendingHarvest": "待收获",
+    "noTokenStaked": "没有质押 {{token}}",
+    "depositToEarn": "存入 {{token}} 以赚取 {{rewardToken}} 奖励",
+    "farmPoolInfo": "{{farmName}} · 池 #{{poolId}}",
+    "poolComposition": "池组成",
+    "mchadStakingTitle": "MCHAD 质押",
+    "motochadCom": "motochad.com",
+    "weighted": "加权：{{amount}}",
+    "unlocks": "解锁：{{date}}",
+    "lpTokens": "LP 代币",
+    "liquidityPosition": "流动性持仓",
+    "wallet": "钱包",
+    "mchadLp": "MCHAD LP",
+    "viewOnMotoSwap": "在 MotoSwap 上查看",
+    "viewOnMotoCHAD": "在 MotoCHAD 上查看",
+    "poolId": "池 #{{id}}",
+    "lockDays": "锁定 {{days}} 天"
+  },
+  "totals": {
+    "aggregateHoldings": "代币持仓",
+    "summary": "摘要",
+    "detail": "详情",
+    "switchToSummary": "切换到摘要视图",
+    "switchToDetail": "切换到详情视图",
+    "badges": {
+      "wallet": "钱包",
+      "staked": "已质押",
+      "harvest": "收获",
+      "lpPool": "LP 池"
+    },
+    "walletCount_one": "{{count}} 个钱包",
+    "walletCount_other": "{{count}} 个钱包"
+  },
+  "settings": {
+    "title": "设置",
+    "subtitle": "管理您追踪的地址",
+    "labelField": "标签（可选）",
+    "labelPlaceholder": "例如 我的主钱包",
+    "addressField": "地址",
+    "addressPlaceholder": "bc1p... 或 0x...",
+    "addBtn": "添加",
+    "invalidAddress": "无效地址。请使用 BTC taproot (bc1p...) 或 OPNet (0x + 64 hex)。",
+    "alreadyAdded": "地址已添加。",
+    "noAddressesYet": "尚未添加任何地址",
+    "storedLocally": "地址仅本地存储在您的浏览器中",
+    "myWallet": "我的钱包"
+  },
+  "wallet": {
+    "connecting": "连接中…",
+    "disconnect": "断开连接",
+    "connectWallet": "连接钱包",
+    "requiresExtension": "需要 OP_WALLET 浏览器扩展"
+  },
+  "statsbar": {
+    "live": "实时",
+    "connecting": "连接中…",
+    "block": "区块",
+    "network": "OPNet · 比特币主网",
+    "btcLabel": "BTC"
+  },
+  "language": {
+    "en": "EN",
+    "fr": "FR",
+    "zh": "中",
+    "es": "ES"
+  },
+  "exercise": {
+    "label": "✏️ 您的笔记与练习作业",
+    "statusEmpty": "开始写作...",
+    "statusSaving": "自动保存中...",
+    "statusSaved": "✓ 已保存",
+    "placeholder": "在此处写下您的答案、想法或笔记。已自动保存到您的浏览器。",
+    "footer": "{{count}} 个字符 • 已本地保存"
+  },
+  "market": {
+    "loading": "加载市场数据…",
+    "lastTrade": "最近交易",
+    "pair": "交易对",
+    "price": "价格",
+    "amountIn": "输入量",
+    "amountOut": "输出量",
+    "block": "区块",
+    "time": "时间",
+    "bestRoute": "最佳路由",
+    "allRoutes": "所有路由",
+    "marketcap": "市值",
+    "spread": "价差",
+    "noDataBtc": "BTC 暂无市场数据"
+  },
+  "router": {
+    "heroTitle": "寻找",
+    "heroGradient": "最佳路径",
+    "heroSubtitle": "比较 MotoSwap 池并找到您交换的最佳路径。",
+    "comingSoon": "即将推出",
+    "backToHome": "← 返回首页"
+  }
+}

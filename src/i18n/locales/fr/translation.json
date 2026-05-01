@@ -1,0 +1,419 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "error": "Erreur",
+    "back": "Retour",
+    "close": "Fermer",
+    "refresh": "Actualiser",
+    "refreshing": "Actualisation…",
+    "copied": "Copié !",
+    "copy": "Copier l'adresse complète",
+    "settings": "Paramètres",
+    "clear": "Effacer",
+    "custom": "PERSONNALISÉ",
+    "live": "Données en direct",
+    "connecting": "Connexion…",
+    "noData": "—",
+    "seeAlso": "Voir aussi :"
+  },
+  "nav": {
+    "home": "Accueil",
+    "tracks": "Positions",
+    "minter": "Minter",
+    "school": "École",
+    "about": "À propos",
+    "settings": "Paramètres",
+    "glossary": "Glossaire →",
+    "router": "Router"
+  },
+  "home": {
+    "title": "Bienvenue sur",
+    "subtitle": "Votre tableau de bord DeFi propulsé par OP_NET",
+    "about": "À propos",
+    "modules": {
+      "tracks": {
+        "title": "Positions",
+        "label": "Positions",
+        "description": "Suivi DeFi multi-portefeuilles"
+      },
+      "minter": {
+        "title": "Minter",
+        "label": "Minter",
+        "description": "Accès anticipé aux mints OP-20 gratuits"
+      },
+      "school": {
+        "title": "École",
+        "label": "Apprendre",
+        "description": "Apprenez Bitcoin et OP_NET"
+      },
+      "router": {
+        "title": "Router",
+        "label": "Router",
+        "description": "Trouvez la meilleure route"
+      }
+    }
+  },
+  "tracks": {
+    "heroTitle": "Suivez vos",
+    "heroGradient": "Positions",
+    "heroSubtitle": "Surveillez toutes vos positions MotoSwap de staking, farming et liquidité sur plusieurs portefeuilles en temps réel.",
+    "sectionTitle": "Positions",
+    "addressCount_one": "{{count}} adresse",
+    "addressCount_other": "{{count}} adresses",
+    "positionCount_one": "{{count}} position détectée",
+    "positionCount_other": "{{count}} positions détectées",
+    "shownCount": "{{count}} affichées",
+    "openSettings": "Ouvrir les paramètres",
+    "clearFilters": "Effacer",
+    "filterClearTitle": "Effacer les filtres",
+    "fetchingPositions": "Récupération des positions on-chain…",
+    "failedToLoad": "Échec du chargement des positions",
+    "noPositions": "Aucune position DeFi détectée pour cette adresse",
+    "noPositionsHint": "Assurez-vous que l'adresse a interagi avec les contrats MotoSwap",
+    "noAddressesTitle": "Aucune adresse suivie",
+    "noAddressesDesc": "Ajoutez vos adresses Bitcoin taproot ou OPNet dans les paramètres pour commencer à suivre vos positions DeFi.",
+    "badges": {
+      "stake": "Staking",
+      "harvest": "Récolte",
+      "lp": "LP",
+      "token": "Token",
+      "custom": "Personnalisé"
+    }
+  },
+  "minter": {
+    "heroTitle": "Minter sur",
+    "heroGradient": "Bitcoin",
+    "heroSubtitle": "Connectez votre OP_WALLET et mintez des tokens OP-20 directement sur la plateforme de contrats intelligents L1 de Bitcoin.",
+    "sortBy": "Trier par",
+    "deployDate": "Date de déploiement",
+    "mintsLeft": "Mints restants",
+    "ascending": "↑ croissant",
+    "descending": "↓ décroissant",
+    "oldestFirst": "· plus anciens d'abord",
+    "newestFirst": "· plus récents d'abord",
+    "fewestMintsFirst": "· moins de mints d'abord",
+    "mostMintsFirst": "· plus de mints d'abord",
+    "minted": "Minté",
+    "supply": "Offre :",
+    "max": "Max :",
+    "perMint": "Par mint",
+    "yourBalance": "Votre solde",
+    "contract": "Contrat",
+    "mintedSuccess": "Minté avec succès !",
+    "transactionId": "ID de transaction :",
+    "fees": "Frais : {{fees}} sats",
+    "mintAgain": "Minter à nouveau",
+    "mintFailed": "Échec du mint",
+    "tryAgain": "Réessayer",
+    "connectToMint": "🔗 Connecter un portefeuille pour minter",
+    "mintToken": "{{icon}} Minter {{name}}",
+    "simulating": "Simulation…",
+    "signInWallet": "Signer dans le portefeuille…",
+    "requiresExtension": "Nécessite l'extension OP_WALLET",
+    "layoutGrid": "Vue grille",
+    "layoutRow": "Vue liste",
+    "token": "Jeton",
+    "progress": "Progression",
+    "action": "Action"
+  },
+  "school": {
+    "heroTitle": "Apprendre",
+    "heroGradient": "Bitcoin",
+    "heroSubtitle": "Des règles fondamentales de Bitcoin à la cryptographie quantique. 7 modules, exercices réels, sans fioritures.",
+    "statsModules": "Modules",
+    "statsQuestions": "Questions",
+    "statsTerms": "Termes",
+    "statsLevel": "Niveau",
+    "yourProgress": "Votre progression",
+    "modulesProgress": "{{done}}/7 modules",
+    "percentComplete": "{{pct}}% terminé",
+    "courseModules": "Modules du cours",
+    "legendCompleted": "Terminé",
+    "legendAvailable": "Disponible",
+    "legendLocked": "Verrouillé",
+    "moduleNotFound": "Module introuvable.",
+    "backToSchool": "← Retour à l'école",
+    "allModules": "← Tous les modules",
+    "moduleCompleted": "✓ Terminé",
+    "quizScore": "Score du quiz",
+    "practicalExercises": "Exercices pratiques",
+    "moduleCompleteRetake": "Module terminé ! Reprenez pour améliorer.",
+    "readyToTest": "Prêt à tester vos connaissances ?",
+    "questionsUnlock": "{{count}} questions · Score 50%+ pour débloquer le suivant",
+    "retakeQuiz": "Reprendre le quiz",
+    "takeQuiz": "Faire le quiz",
+    "moduleLockedBtn": "🔒 Module {{id}}",
+    "moduleNavPrev": "← Module {{id}}",
+    "moduleNavNext": "Module {{id}} →",
+    "breadcrumbModule": "Module {{id}} : {{title}}"
+  },
+  "glossary": {
+    "title": "Glossaire",
+    "backToSchool": "← École",
+    "subtitle": "Tous les termes clés du cours OPNet & Bitcoin DeFi, définis en langage simple.",
+    "searchPlaceholder": "Rechercher parmi 40+ termes Bitcoin DeFi...",
+    "showing": "Affichage de",
+    "of": "sur",
+    "termsLabel": "termes",
+    "matching": "correspondant à",
+    "clearBtn": "Effacer",
+    "noTermsFound": "Aucun terme trouvé",
+    "tryDifferent": "Essayez d'autres mots-clés.",
+    "termCount_one": "{{count}} terme",
+    "termCount_other": "{{count}} termes"
+  },
+  "about": {
+    "heroTitle": "À propos",
+    "heroGradient": "Slowphie",
+    "heroSubtitle": "Slowphie est une application DeFi Bitcoin construite sur OP_NET — la seule plateforme de contrats intelligents fonctionnant nativement sur Bitcoin L1 sans ponts ni sidechains. Trois modules, une mission : suivre, minter et apprendre.",
+    "backToHome": "← Retour à l'accueil",
+    "liveData": "Données en direct",
+    "updatedAt": "Mis à jour {{time}}",
+    "nextScan": "· Prochain scan {{time}}",
+    "statsTokens": "Tokens",
+    "statsLpPools": "Pools LP",
+    "statsFarms": "Farms",
+    "startHereTitle": "💡 Commencez ici",
+    "startHereBody": "Le DeFi Bitcoin est réellement complexe. Avant de staker, farmer ou minter, passez quelques jours à parcourir les modules. La technologie récompense ceux qui la comprennent — et punit ceux qui ne la comprennent pas.",
+    "techSpecs": "Spécifications techniques",
+    "loading": "chargement…",
+    "footerText": "Construit sur OPNet · Bitcoin Mainnet · Aucun pont · Aucune garde",
+    "tracksBtn": "📊 Positions",
+    "minterBtn": "🪙 Minter",
+    "schoolBtn": "🎓 École",
+    "openArrow": "Ouvrir →",
+    "sections": {
+      "tracks": {
+        "label": "Positions",
+        "tagline": "Suivez vos positions MotoSwap",
+        "description": "Tracks vous donne un aperçu en temps réel de toutes vos positions DeFi MotoSwap sur plusieurs portefeuilles Bitcoin — sans connexion ni garde.",
+        "features": {
+          "multiWallet": {
+            "title": "Suivi multi-portefeuilles",
+            "desc": "Surveillez les positions de staking, farming et LP sur toutes vos adresses simultanément."
+          },
+          "livePrice": {
+            "title": "Prix BTC & données de bloc en direct",
+            "desc": "Alimenté par Slowphie Server — les prix et la hauteur de bloc se mettent à jour toutes les 30 secondes via sondage REST."
+          },
+          "aggregation": {
+            "title": "Agrégation complète des positions",
+            "desc": "Staking MOTO, farms BTC natifs, paires LP, soldes de portefeuille, staking personnalisé MCHAD — chaque type de position dans une vue unifiée."
+          },
+          "mchad": {
+            "title": "Staking LP personnalisé MCHAD",
+            "desc": "Visibilité complète sur les positions du protocole MotoCHAD : staking MCHAD, staking LP MCHAD/MOTO avec multiplicateurs de verrouillage temporel, montants pondérés et récompenses MCHAD non réclamées."
+          },
+          "lpComposition": {
+            "title": "Composition du pool LP",
+            "desc": "Pour chaque position LP, voyez les montants exacts de tokens sous-jacents (ex. MOTO + PILL) en utilisant les réserves on-chain en direct."
+          },
+          "tokenTotals": {
+            "title": "Carte des totaux de tokens",
+            "desc": "Agrégez les avoirs en tokens sur tous les portefeuilles suivis pour un instantané complet du portefeuille."
+          },
+          "refresh": {
+            "title": "Actualisation par blocs",
+            "desc": "Les données s'actualisent lorsque de nouveaux blocs Bitcoin sont détectés. Naviguez et revenez — aucun rechargement nécessaire."
+          }
+        },
+        "spec": {
+          "dataSource": "Source de données",
+          "trackedTokens": "Tokens suivis",
+          "trackedLpPools": "Pools LP suivis",
+          "farmsTracked": "Farms suivies",
+          "supportedPositions": "Positions supportées",
+          "customProtocol": "Protocole personnalisé",
+          "cacheStrategy": "Stratégie de cache",
+          "custody": "Garde",
+          "lastServerScan": "Dernier scan serveur"
+        }
+      },
+      "minter": {
+        "label": "Minter",
+        "tagline": "Découvrez et mintez des tokens OP-20 cachés",
+        "description": "Minter vous aide à trouver et minter des tokens OP-20 gratuits directement sur la plateforme de contrats intelligents L1 de Bitcoin. Certains tokens sont difficiles à découvrir sur MotoSwap — Minter les fait remonter pour vous.",
+        "features": {
+          "hiddenGem": {
+            "title": "Détection de pépites cachées",
+            "desc": "Certains tokens mintables ne sont pas visibles dans l'interface standard de MotoSwap. Minter les trouve."
+          },
+          "oneClick": {
+            "title": "Mint en un clic",
+            "desc": "Connectez votre extension OP_WALLET et mintez en un seul clic par token."
+          },
+          "supplyBar": {
+            "title": "Barre de progression de l'offre",
+            "desc": "Voyez l'offre totale vs l'offre en circulation avant de minter — sachez à quel point un token est rare."
+          },
+          "walletBalance": {
+            "title": "Affichage du solde du portefeuille",
+            "desc": "Votre détention actuelle pour chaque token affichée en temps réel après connexion."
+          },
+          "mintStatus": {
+            "title": "Retour d'état du mint",
+            "desc": "États de transaction clairs : inactif → en attente → confirmé, avec gestion des erreurs."
+          }
+        },
+        "spec": {
+          "protocol": "Protocole",
+          "wallet": "Portefeuille",
+          "tokensAvailable": "Tokens disponibles",
+          "platformFee": "Frais de plateforme",
+          "settlement": "Règlement"
+        },
+        "feeNote": "De petits frais de plateforme de 1 000 sats sont inclus dans chaque transaction de mint pour soutenir l'infrastructure Slowphie."
+      },
+      "school": {
+        "label": "École",
+        "tagline": "Apprenez Bitcoin & OPNet — Avant de faire du DeFi",
+        "description": "L'école est la première étape essentielle avant d'utiliser Tracks ou Minter. Le DeFi Bitcoin est techniquement complexe — comprendre les fondamentaux protège vos fonds et affine vos décisions.",
+        "features": {
+          "modules": {
+            "title": "7 modules progressifs",
+            "desc": "Des bases de Bitcoin à la cryptographie quantique — chaque module se déverrouille après avoir réussi le quiz précédent."
+          },
+          "quiz": {
+            "title": "35 questions de quiz",
+            "desc": "Vraies questions à choix multiples avec explications. Score 50%+ pour débloquer le module suivant."
+          },
+          "glossary": {
+            "title": "40+ termes de glossaire",
+            "desc": "Glossaire consultable de tous les termes Bitcoin DeFi, définis en langage simple."
+          },
+          "exercises": {
+            "title": "Exercices pratiques",
+            "desc": "Chaque module comprend des exercices pratiques avec des champs de réponse à sauvegarde automatique, stockés localement."
+          },
+          "progress": {
+            "title": "Progression sauvegardée localement",
+            "desc": "Les scores de quiz et les réponses aux exercices persistent dans votre navigateur — continuez sur plusieurs sessions."
+          }
+        },
+        "spec": {
+          "modules": "Modules",
+          "topics": "Sujets",
+          "quizThreshold": "Seuil du quiz",
+          "storage": "Stockage",
+          "estimatedTime": "Temps estimé"
+        }
+      }
+    }
+  },
+  "appbar": {
+    "brand": "Slowphie",
+    "beta": "Bêta",
+    "logoAlt": "Logo Slowphie"
+  },
+  "positions": {
+    "motoswapStake": "Staking MotoSwap",
+    "badge": {
+      "stake": "STAKE",
+      "farm": "FARM",
+      "token": "TOKEN",
+      "lp": "LP",
+      "custom": "PERSONNALISÉ"
+    },
+    "staked": "Staké",
+    "pendingRewards": "Récompenses en attente",
+    "noPendingRewards": "Aucune récompense en attente",
+    "walletBalance": "Solde du portefeuille",
+    "noFarmPositions": "Aucune position de farm détectée",
+    "notStakedAnyFarm": "Pas de staking dans une farm — changez d'onglet pour voir les détails",
+    "alreadyStaked": "Déjà staké",
+    "pendingHarvest": "Récolte en attente",
+    "noTokenStaked": "Aucun {{token}} staké",
+    "depositToEarn": "Déposez {{token}} pour gagner des récompenses {{rewardToken}}",
+    "farmPoolInfo": "{{farmName}} · Pool #{{poolId}}",
+    "poolComposition": "Composition du pool",
+    "mchadStakingTitle": "Staking MCHAD",
+    "motochadCom": "motochad.com",
+    "weighted": "Pondéré : {{amount}}",
+    "unlocks": "Déverrouillage : {{date}}",
+    "lpTokens": "Tokens LP",
+    "liquidityPosition": "Position de liquidité",
+    "wallet": "Portefeuille",
+    "mchadLp": "LP MCHAD",
+    "viewOnMotoSwap": "Voir sur MotoSwap",
+    "viewOnMotoCHAD": "Voir sur MotoCHAD",
+    "poolId": "Pool #{{id}}",
+    "lockDays": "Verrou {{days}}j"
+  },
+  "totals": {
+    "aggregateHoldings": "Total des Tokens",
+    "summary": "Résumé",
+    "detail": "Détail",
+    "switchToSummary": "Passer à la vue résumée",
+    "switchToDetail": "Passer à la vue détaillée",
+    "badges": {
+      "wallet": "Portefeuille",
+      "staked": "Staké",
+      "harvest": "Récolte",
+      "lpPool": "Pool LP"
+    },
+    "walletCount_one": "{{count}} portefeuille",
+    "walletCount_other": "{{count}} portefeuilles"
+  },
+  "settings": {
+    "title": "Paramètres",
+    "subtitle": "Gérez vos adresses suivies",
+    "labelField": "Étiquette (optionnel)",
+    "labelPlaceholder": "ex. Mon portefeuille principal",
+    "addressField": "Adresse",
+    "addressPlaceholder": "bc1p... ou 0x...",
+    "addBtn": "Ajouter",
+    "invalidAddress": "Adresse invalide. Utilisez BTC taproot (bc1p...) ou OPNet (0x + 64 hex).",
+    "alreadyAdded": "Adresse déjà ajoutée.",
+    "noAddressesYet": "Aucune adresse ajoutée pour l'instant",
+    "storedLocally": "Les adresses sont stockées localement dans votre navigateur uniquement",
+    "myWallet": "Mon portefeuille"
+  },
+  "wallet": {
+    "connecting": "Connexion…",
+    "disconnect": "Déconnecter",
+    "connectWallet": "Connecter le portefeuille",
+    "requiresExtension": "Nécessite l'extension OP_WALLET"
+  },
+  "statsbar": {
+    "live": "En direct",
+    "connecting": "Connexion…",
+    "block": "Bloc",
+    "network": "OPNet · Bitcoin Mainnet",
+    "btcLabel": "BTC"
+  },
+  "language": {
+    "en": "EN",
+    "fr": "FR",
+    "zh": "中",
+    "es": "ES"
+  },
+  "exercise": {
+    "label": "✏️ Vos Notes & Travaux d'Exercice",
+    "statusEmpty": "Commencez à écrire...",
+    "statusSaving": "Sauvegarde auto...",
+    "statusSaved": "✓ Sauvegardé",
+    "footer": "{{count}} caractères • sauvegardé localement"
+  },
+  "market": {
+    "loading": "Chargement des données marché…",
+    "lastTrade": "Dernier échange",
+    "pair": "Paire",
+    "price": "Prix",
+    "amountIn": "Quantité entrée",
+    "amountOut": "Quantité sortie",
+    "block": "Bloc",
+    "time": "Heure",
+    "bestRoute": "Meilleure route",
+    "allRoutes": "Toutes les routes",
+    "marketcap": "Capitalisation",
+    "spread": "Spread",
+    "noDataBtc": "Aucune donnée marché pour BTC"
+  },
+  "router": {
+    "heroTitle": "Trouver la",
+    "heroGradient": "Meilleure Route",
+    "heroSubtitle": "Comparez les pools MotoSwap et trouvez le chemin optimal pour vos swaps.",
+    "comingSoon": "Bientôt Disponible",
+    "backToHome": "← Retour à l'accueil"
+  }
+}

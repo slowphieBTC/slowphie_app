@@ -1,11 +1,16 @@
 import { useEffect } from 'react';
 import { useWalletConnect } from '@btc-vision/walletconnect';
+import { useTranslation } from 'react-i18next';
 import { TokenConfig } from '../config/tokens';
 import { useTokenInfo, TokenInfo } from '../hooks/useTokenInfo';
 import { useMintToken } from '../hooks/useMintToken';
 
+type SortField = 'date' | 'mintsLeft';
+
 interface Props {
   token: TokenConfig;
+  sortField: SortField;
+  mintsLeft: bigint | null;
   onInfoLoaded?: (tokenId: string, info: TokenInfo) => void;
 }
 
@@ -16,25 +21,17 @@ function formatAmount(raw: bigint, decimals: number): string {
   return `${whole.toLocaleString()}.${frac.toString().padStart(decimals, '0').slice(0, 2)}`;
 }
 
-export function TokenCard({ token, onInfoLoaded }: Props) {
+export function TokenCard({ token, sortField, mintsLeft, onInfoLoaded }: Props) {
   const { walletAddress } = useWalletConnect();
   const { info, loading, fetch } = useTokenInfo(token);
   const { mint, status, error, result, reset } = useMintToken(token);
+  const { t } = useTranslation();
   const c = token.colorClasses;
 
+  useEffect(() => { fetch(); }, [fetch]);
+  useEffect(() => { if (info && onInfoLoaded) onInfoLoaded(token.id, info); }, [info, onInfoLoaded, token.id]);
   useEffect(() => {
-    fetch();
-  }, [fetch]);
-
-  useEffect(() => {
-    if (info && onInfoLoaded) onInfoLoaded(token.id, info);
-  }, [info, onInfoLoaded, token.id]);
-
-  useEffect(() => {
-    if (status === 'success') {
-      const t = setTimeout(() => fetch(), 3000);
-      return () => clearTimeout(t);
-    }
+    if (status === 'success') { const ti = setTimeout(() => fetch(), 3000); return () => clearTimeout(ti); }
     return undefined;
   }, [status, fetch]);
 
@@ -44,119 +41,75 @@ export function TokenCard({ token, onInfoLoaded }: Props) {
 
   return (
     <div className="glass rounded-2xl p-6 space-y-4 flex flex-col">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-2xl shadow-lg`}>
-            {token.icon}
-          </div>
+          <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${c.gradient} flex items-center justify-center text-2xl shadow-lg`}>{token.icon}</div>
           <div>
             <h2 className="text-xl font-bold text-white">{info?.name ?? token.name}</h2>
-            <p className="text-sm text-gray-400">{info?.symbol ?? token.symbol} · OP_NET</p>
+            <p className="text-sm text-gray-400">{info?.symbol ?? token.symbol}</p>
+            {sortField === 'date' && (
+              <p className="text-xs text-gray-500 mt-0.5">{new Date(token.deployedAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}</p>
+            )}
+            {sortField === 'mintsLeft' && mintsLeft !== null && (
+              <p className="text-xs text-gray-500 mt-0.5">{mintsLeft.toLocaleString()} mints left</p>
+            )}
           </div>
         </div>
-        <button
-          onClick={fetch}
-          disabled={loading}
-          className="p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-colors"
-          title="Refresh"
-        >
+        <button onClick={fetch} disabled={loading} className="p-2 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-colors" title={t('common.refresh')}>
           <span className={loading ? 'animate-spin inline-block' : ''}>🔄</span>
         </button>
       </div>
 
-      {/* Progress bar */}
       <div className="space-y-2">
         <div className="flex justify-between text-xs text-gray-400">
-          <span>Minted</span>
+          <span>{t('minter.minted')}</span>
           <span className={`font-semibold ${c.text}`}>{progress < 1 ? progress.toFixed(4) : progress.toFixed(2)}%</span>
         </div>
         <div className="w-full h-3 bg-white/10 rounded-full overflow-hidden">
-          <div
-            className={`h-full rounded-full transition-all duration-700 ${c.bar}`}
-            style={{ width: progress > 0 ? `${Math.max(progress, 4)}%` : "0%" }}
-          />
+          <div className={`h-full rounded-full transition-all duration-700 ${c.bar}`} style={{ width: progress > 0 ? `${Math.max(progress, 4)}%` : '0%' }} />
         </div>
         <div className="flex justify-between text-xs text-gray-500">
-          <span>
-            Supply:{' '}
-            <span className={c.text}>
-              {info ? formatAmount(info.totalSupply, info.decimals) : '—'}
-            </span>
-          </span>
-          <span>
-            Max:{' '}
-            <span className="text-gray-400">
-              {info ? formatAmount(info.maxSupply, info.decimals) : '—'}
-            </span>
-          </span>
+          <span>{t('minter.supply')}{' '}<span className={c.text}>{info ? formatAmount(info.totalSupply, info.decimals) : '\u2014'}</span></span>
+          <span>{t('minter.max')}{' '}<span className="text-gray-400">{info ? formatAmount(info.maxSupply, info.decimals) : '\u2014'}</span></span>
         </div>
       </div>
 
-      {/* Stats row */}
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-white/5 rounded-xl p-3">
-          <p className="text-xs text-gray-500 mb-1">Per Mint</p>
-          <p className={`text-sm font-mono ${c.text} truncate`}>
-            {formatAmount(token.mintPerCall, token.decimals)}
-          </p>
+          <p className="text-xs text-gray-500 mb-1">{t('minter.perMint')}</p>
+          <p className={`text-sm font-mono ${c.text} truncate`}>{formatAmount(token.mintPerCall, token.decimals)}</p>
         </div>
         <div className="bg-white/5 rounded-xl p-3">
-          <p className="text-xs text-gray-500 mb-1">Your Balance</p>
-          <p className="text-sm font-mono text-yellow-400 truncate">
-            {info && isConnected ? formatAmount(info.balance, info.decimals) : '—'}
-          </p>
+          <p className="text-xs text-gray-500 mb-1">{t('minter.yourBalance')}</p>
+          <p className="text-sm font-mono text-yellow-400 truncate">{info && isConnected ? formatAmount(info.balance, info.decimals) : '\u2014'}</p>
         </div>
       </div>
 
-      {/* Contract address */}
       <div className="bg-white/5 rounded-xl p-3">
-        <p className="text-xs text-gray-500 mb-1">Contract</p>
-        <a
-          href={`https://mainnet.opnet.org/contract/${encodeURIComponent(token.address)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-xs font-mono text-gray-400 break-all hover:text-gray-200 transition-colors"
-        >
-          {token.address}
-        </a>
+        <p className="text-xs text-gray-500 mb-1">{t('minter.contract')}</p>
+        <a href={`https://opscan.org/token/${encodeURIComponent(token.address)}?network=mainnet`} target="_blank" rel="noopener noreferrer"
+          className="text-xs font-mono text-gray-400 break-all hover:text-gray-200 transition-colors">{token.address}</a>
       </div>
 
-      {/* Status messages */}
       {status === 'success' && result && (
         <div className="bg-green-500/10 border border-green-500/30 rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2 text-green-400 font-semibold">
-            <span>✅</span> Minted Successfully!
-          </div>
-          <p className="text-xs text-gray-400">Transaction ID:</p>
-          <a
-            href={`https://mempool.space/tx/${result.txId}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs font-mono text-blue-400 hover:text-blue-300 underline break-all"
-          >
-            {result.txId}
-          </a>
-          <p className="text-xs text-gray-500">Fees: {result.fees.toString()} sats</p>
-          <button onClick={reset} className="text-xs text-green-400 hover:text-green-300 underline">
-            Mint again
-          </button>
+          <div className="flex items-center gap-2 text-green-400 font-semibold"><span>✅</span> {t('minter.mintedSuccess')}</div>
+          <p className="text-xs text-gray-400">{t('minter.transactionId')}</p>
+          <a href={`https://mempool.space/tx/${result.txId}`} target="_blank" rel="noopener noreferrer"
+            className="text-xs font-mono text-blue-400 hover:text-blue-300 underline break-all">{result.txId}</a>
+          <p className="text-xs text-gray-500">{t('minter.fees', { fees: result.fees.toString() })}</p>
+          <button onClick={reset} className="text-xs text-green-400 hover:text-green-300 underline">{t('minter.mintAgain')}</button>
         </div>
       )}
 
       {status === 'error' && error && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 space-y-2">
-          <div className="flex items-center gap-2 text-red-400 font-semibold">
-            <span>❌</span> Mint Failed
-          </div>
+          <div className="flex items-center gap-2 text-red-400 font-semibold"><span>❌</span> {t('minter.mintFailed')}</div>
           <p className="text-xs text-gray-400 break-words">{error}</p>
-          <button onClick={reset} className="text-xs text-red-400 hover:text-red-300 underline">
-            Try again
-          </button>
+          <button onClick={reset} className="text-xs text-red-400 hover:text-red-300 underline">{t('minter.tryAgain')}</button>
         </div>
       )}
 
-      {/* Mint button — pushed to bottom */}
       <div className="mt-auto pt-2">
         {status !== 'success' && status !== 'error' && (
           <button
@@ -167,27 +120,14 @@ export function TokenCard({ token, onInfoLoaded }: Props) {
               isConnected && !isBusy
                 ? `bg-gradient-to-r ${c.gradient} hover:opacity-90 text-white hover:scale-[1.02] active:scale-[0.98] ${c.glow} shadow-lg`
                 : 'bg-gray-700 text-gray-500 cursor-not-allowed',
-            ].join(' ')}
-          >
-            {!isConnected && '🔗 Connect Wallet to Mint'}
-            {isConnected && status === 'idle' && `${token.icon} Mint ${token.name}`}
-            {status === 'simulating' && (
-              <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin">⚙️</span> Simulating…
-              </span>
-            )}
-            {status === 'signing' && (
-              <span className="flex items-center justify-center gap-2">
-                <span className="animate-pulse">🖊️</span> Sign in Wallet…
-              </span>
-            )}
+            ].join(' ')}>
+            {!isConnected && t('minter.connectToMint')}
+            {isConnected && status === 'idle' && t('minter.mintToken', { icon: token.icon, name: token.name })}
+            {status === 'simulating' && <span className="flex items-center justify-center gap-2"><span className="animate-spin">⚙️</span> {t('minter.simulating')}</span>}
+            {status === 'signing' && <span className="flex items-center justify-center gap-2"><span className="animate-pulse">🖊️</span> {t('minter.signInWallet')}</span>}
           </button>
         )}
-        {!isConnected && (
-          <p className="text-center text-xs text-gray-500 mt-2">
-            Requires OP_WALLET browser extension
-          </p>
-        )}
+        {!isConnected && <p className="text-center text-xs text-gray-500 mt-2">{t('minter.requiresExtension')}</p>}
       </div>
     </div>
   );
