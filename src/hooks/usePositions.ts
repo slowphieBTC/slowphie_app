@@ -48,7 +48,11 @@ const CORE_ECOSYSTEM_TOKENS = new Set([
   '0xb0c47bdfabfc15772dc40b4e65e4ca3c3440229a580a4a792a2f01c32d6ec944',
 ].map(a => a.toLowerCase()));
 
-const DISCOVERY_BATCH_SIZE = 8;
+const DISCOVERY_BATCH_SIZE = 5;
+/** Inter-batch pause to avoid hammering mainnet.opnet.org and triggering rate-limits */
+const DISCOVERY_BATCH_DELAY_MS = 200;
+/** Tiny sleep helper */
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 // ── Minimal token shape used for detection ────────────────────────────────
 interface TokenEntry {
@@ -620,7 +624,7 @@ export function usePositions(addresses: string[]) {
           const lkg = _lastGoodBalances.get(lkgKey(entry.rawAddr, entry.token.address)) ?? 0n;
           const bal = await withRetry(
             () => getTokenBalance(entry.token.address, entry.opnetAddr).then((v) => { onOk(); return v; }),
-            { fallback: lkg, onFail, label: `getTokenBalance-disc(${entry.token.symbol})` },
+            { retries: 2, delayMs: 500, fallback: lkg, onFail, label: `getTokenBalance-disc(${entry.token.symbol})` },
           );
           _lastGoodBalances.set(lkgKey(entry.rawAddr, entry.token.address), bal);
           return bal;
@@ -699,6 +703,11 @@ export function usePositions(addresses: string[]) {
         setAllPositions([...merged.values()]);
       }
       flushHealth();
+      // Throttle: pause between batches to avoid rate-limiting on mainnet.opnet.org
+      // (especially important on mobile networks with higher latency).
+      if (batchStart + DISCOVERY_BATCH_SIZE < discoveryTokensByAddr.length) {
+        await sleep(DISCOVERY_BATCH_DELAY_MS);
+      }
     }
     } finally {
       // Always settle the fetch state — guarantees the UI never stays stuck on
