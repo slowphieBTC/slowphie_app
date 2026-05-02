@@ -63,9 +63,12 @@ function TokenIcon({ symbol, contractAddress, color, size = 'md' }: { symbol: st
   const [err, setErr] = useState(false);
   const key = symbol.toUpperCase();
   const addrKey = contractAddress ? `addr:${contractAddress.toLowerCase()}` : null;
+  // Resolve icon by contract address only — never by symbol from the dynamic store.
+  // Symbol-based store lookup causes icon collisions when two tokens share the same symbol (e.g. two PEPE contracts).
+  // STATIC_TOKEN_ICONS is safe because it only contains unique core tokens (MOTO, PILL, BTC, MCHAD, BLUE).
   let url: string | undefined;
   if (addrKey) { url = storeIcons[addrKey] ?? STATIC_TOKEN_ICONS[key]; }
-  else { url = storeIcons[key] ?? STATIC_TOKEN_ICONS[key]; }
+  else { url = STATIC_TOKEN_ICONS[key]; }
   const abbr = symbol.replace(/[^A-Z0-9]/gi, '').slice(0, 2).toUpperCase();
   const imgCls = size === 'sm' ? 'w-5 h-5' : 'w-8 h-8';
   if (url && !err) return <img src={url} alt={symbol} className={`${imgCls} object-contain rounded-full`} onError={() => setErr(true)} />;

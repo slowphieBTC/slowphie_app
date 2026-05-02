@@ -24,8 +24,9 @@ function TokenIcon({ symbol, contractAddress, size = 40 }: { symbol: string; con
   const key = symbol.toUpperCase();
   const addrKey = contractAddress ? `addr:${contractAddress.toLowerCase()}` : null;
   let url: string | undefined;
+  // Icon resolution: address-based only — symbol fallback would collide for tokens sharing the same symbol.
   if (addrKey) { url = storeIcons[addrKey] ?? STATIC_TOKEN_ICONS[key]; }
-  else { url = storeIcons[key] ?? STATIC_TOKEN_ICONS[key]; }
+  else { url = STATIC_TOKEN_ICONS[key]; }
   const abbr = symbol.replace(/[^A-Z0-9]/gi, '').slice(0, 2).toUpperCase();
 
   if (url && !err) {

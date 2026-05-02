@@ -35,13 +35,16 @@ function symbolAbbr(symbol: string): string {
   return clean.slice(0, 2).toUpperCase();
 }
 
+// Icon resolution: always prefer address-based store key over symbol-based.
+// Symbol fallback in the store would cause icon collisions between tokens sharing the same symbol (e.g. two PEPE contracts).
+// STATIC_TOKEN_ICONS is safe — it only holds unique core tokens (BTC, MOTO, PILL, MCHAD, BLUE).
 function resolveIcon(symbol: string, storeIcons: Record<string, string>, contractAddress?: string): string | undefined {
   const key = symbol.toUpperCase();
   if (contractAddress) {
     const addrKey = `addr:${contractAddress.toLowerCase()}`;
     return storeIcons[addrKey] ?? STATIC_TOKEN_ICONS[key];
   }
-  return storeIcons[key] ?? STATIC_TOKEN_ICONS[key];
+  return STATIC_TOKEN_ICONS[key];
 }
 
 function LetterAvatar({ abbr, sizeClass }: { abbr: string; sizeClass: string }) {
