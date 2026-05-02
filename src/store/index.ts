@@ -166,6 +166,8 @@ export const useAppStore = create<AppState>()(
         BLUE:  '/tokens/BLUE.jpg',
         // addr: keys for tokens with known contract addresses — used by resolveIcon
         // when contractAddress is provided (collision-safe icon lookup)
+        // BTC native uses the sentinel '__btc_native__' address
+        'addr:__btc_native__': 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/bitcoin.png',
         'addr:0x8d325ab5516f23dce15d650f58a160a2c1c2515bda3f0212ca0b8b2b5705b4ab': '/tokens/MCHAD.jpg',
         'addr:0x9b344461172333d558047b30dafa5608295e4b413423ba4092a638b0003c5fa7': '/tokens/BLUE.jpg',
         'addr:0xc3d18f9d7db3f26ed107a9f4a4c65eef14c1ca73db5684ef9789fdd4fbb3ea9a': 'https://raw.githubusercontent.com/btc-vision/contract-logo/main/contracts/op1sqrxd0p3kd234wc5n2z7pl4hs82y8kpk4fqj9h78a.png',
