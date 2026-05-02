@@ -250,7 +250,9 @@ function Legend({ series }: { series: ChartSeries[] }) {
 
 function TokenPill({ entry, onToggle }: { entry: TokenVisibilityEntry; onToggle: (addr: string) => void }) {
   const storeIcons = useAppStore((s) => s.tokenIcons);
-  const iconUrl = storeIcons[`addr:${entry.address.toLowerCase()}`] ?? storeIcons[entry.symbol.toUpperCase()];
+  // Icon must resolve by contract address only — never by symbol name.
+  // Symbol-based fallback would cause identical icons for tokens sharing the same symbol (e.g. two PEPE contracts).
+  const iconUrl = storeIcons[`addr:${entry.address.toLowerCase()}`];
   const hex = getTokenHex(entry.symbol);
 
   return (
