@@ -131,7 +131,7 @@ export interface StatusResponse {
 const BASE_URL: string =
   (import.meta.env.VITE_SLOWPHIE_API_URL as string | undefined) ?? 'http://localhost:3001';
 
-const TIMEOUT_MS = 5_000;
+const TIMEOUT_MS = 15_000;
 
 async function fetchTimeout(url: string): Promise<Response> {
   const ctrl  = new AbortController();
@@ -229,9 +229,40 @@ export interface MarketRoute {
   totalFeePct:      number;
   source:           string;     // "nativeswap" | "nativeswap+motoswap"
   confidence:       number;     // 1 = direct, 0.8 = via hop
-  trust?:           string;     // "OK" | "WARNING" | "UNKNOWN"
+  trust?:           string;     // "OK" | "WARNING"
   pathAddresses?:   string[];
   tokenTaxes?:      Array<{ symbol: string; address: string; taxPct: number; direction: string }>;
+
+  // ── Executable economics (server-computed) ──────────────────────────────────
+  /** Route feasibility classification */
+  feasibility?:           'profitable' | 'below-fees' | 'dust-profit' | 'liquidity-capped' | 'queue-impacted' | 'shared-pool';
+  /** True when this route is the canonical price anchor */
+  isReference?:           boolean;
+  /** Spread vs canonical reference price (negative = cheaper than anchor) */
+  spreadVsReferencePct?:  number;
+  /** Optimal BTC input sats (ternary-search result) */
+  maxBtcInputSats?:       string;
+  /** Profit at optimal size (signed, in sats) */
+  executableProfitSats?:  string;
+  /** Effective BTC-per-token at optimal size */
+  effectivePriceAtMax?:   string;
+  /** Address of the pool limiting the route */
+  bottleneckPool?:        string;
+  /** BTC equivalent of bottleneck pool reserves */
+  bottleneckLiquidityBtc?: string;
+  /** Adaptive slippage curve samples */
+  slippageSamples?:       Array<{ btcInSats: string; effectivePriceBtc: string; slippagePct: number }>;
+  /** Block height when enrichment was last run */
+  lastVerifiedBlock?:     string;
+
+  // ── Lifecycle (from route_state MongoDB) ───────────────────────────────────
+  firstSeenAt?:           number;  // unix ms
+  detectedAt?:            number;  // unix ms — when this path first became best
+  lastSeenAt?:            number;  // unix ms
+  appearanceCount?:       number;
+  bestRouteCount?:        number;
+  avgSpreadPct?:          number;
+  maxObservedProfitSats?: string;
 }
 
 export interface MarketLastTrade {
@@ -291,16 +322,20 @@ export async function fetchMarketByAddress(address: string): Promise<MarketData>
 
 
 export interface RouteDetail {
-  tokenAddress: string;
-  tokenSymbol: string;
-  tokenName: string;
-  price: string;
-  marketcap: string;
-  buyTax: number;
-  sellTax: number;
-  spread: string;
-  routes: MarketRoute[];
-  lastTrade: MarketLastTrade | null;
+  tokenAddress:    string;
+  tokenSymbol:     string;
+  tokenName:       string;
+  price:           string;
+  marketcap:       string;
+  buyTax:          number;
+  sellTax:         number;
+  spread:          string;
+  routes:          MarketRoute[];
+  lastTrade:       MarketLastTrade | null;
+  /** Security trust of the best route */
+  bestRouteTrust?: 'OK' | 'WARNING';
+  /** Executability health of the best route */
+  bestRouteHealth?: 'HEALTHY' | 'ILLIQUID' | 'BELOW_FEES' | 'STALE' | 'NO_ROUTES';
 }
 
 export async function fetchTokenRoutes(address: string): Promise<RouteDetail> {
